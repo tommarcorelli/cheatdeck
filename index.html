@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>cheat/deck — la ligne de commande, enfin mémorisée</title>
+<meta name="description" content="Le cheatsheet de commandes le plus complet du web : 47 systèmes et outils (Linux, BSD, macOS, Windows, Git, Docker, tmux, SSH, Vim…), 4800+ commandes cherchables et copiables en un clic. 100% côté client.">
+<meta name="theme-color" content="#05070a">
+<meta name="color-scheme" content="dark light">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+<meta property="og:type" content="website">
+<meta property="og:title" content="cheat/deck — la ligne de commande, enfin mémorisée">
+<meta property="og:description" content="47 systèmes et outils, 4800+ commandes cherchables et copiables en un clic. Aucun compte, aucun tracker, 100% côté client.">
+<meta property="og:image" content="og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="cheat/deck — cheatsheet de commandes pour 47 systèmes et outils">
+<meta property="og:locale" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="cheat/deck — la ligne de commande, enfin mémorisée">
+<meta name="twitter:description" content="47 systèmes et outils, 4800+ commandes cherchables et copiables en un clic.">
+<meta name="twitter:image" content="og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=20260807a">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="cheat/deck">
+</head>
+<body>
+
+<div class="grain"></div>
+
+<!-- ============ TOPBAR ============ -->
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"><svg viewBox="0 0 32 32" width="18" height="18"><rect x="8" y="9" width="13" height="17" rx="2.6" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" transform="rotate(-13 16 17)"/><rect x="9" y="8" width="13" height="17" rx="2.6" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5" transform="rotate(6 16 17)"/><rect x="9.5" y="7.5" width="13" height="18" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="12" x2="19" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span>
+    <span>cheat<span class="slash">/</span>deck</span>
+  </div>
+  <nav class="topbar-nav" aria-label="Navigation principale">
+    <a href="#hero">manifeste</a>
+    <a href="#deck">commandes</a>
+    <span>·</span>
+    <span><span class="count" id="topbarSystemsCount">47</span> systèmes</span>
+  </nav>
+  <div class="topbar-actions">
+    <button type="button" class="kbtn icon-btn" id="themeToggle" title="Thème clair/sombre" aria-label="Basculer le thème">
+      <svg id="themeIconDark" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="themeIconLight" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+    </button>
+    <button type="button" class="kbtn icon-btn" id="shortcutsToggle" title="Raccourcis clavier (?)" aria-label="Voir les raccourcis clavier">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.67-2.5 1.5-2.5 3.5"/><line x1="12" y1="16.5" x2="12" y2="16.6"/></svg>
+    </button>
+    <button type="button" class="kbtn" id="openSearch">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>Rechercher</span><kbd>Ctrl K</kbd>
+    </button>
+    <button type="button" class="kbtn" id="compareToggle" title="Comparer deux systèmes">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3M12 3v18"/></svg>
+      <span>Comparer</span>
+    </button>
+    <button type="button" class="kbtn" id="savedToggle" title="Favoris">
+      <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6z"/></svg>
+      <span>Épinglés</span>
+      <span id="savedCount" class="saved-count">0</span>
+    </button>
+    <button type="button" class="launch-btn" id="launchBtn">Lancer <span>↗</span></button>
+  </div>
+</header>
+
+<!-- ============ HERO ============ -->
+<section class="hero" id="hero">
+  <div class="hero-streaks" id="heroStreaks"></div>
+  <div class="hero-inner cover-body">
+    <div class="term-line" data-line="0">
+      <div class="eyebrow"><span class="dot"></span>CHEATSHEET LINUX · MACOS · WINDOWS</div>
+    </div>
+    <div class="term-line" data-line="1">
+      <h1>La ligne de<br>commande,<br><span class="glow">enfin mémorisée.</span></h1>
+    </div>
+    <div class="term-line" data-line="2">
+      <p class="hero-sub">Un cheatsheet féroce et cherchable pour chaque shell que tu touches. Une page par système — apt, pacman, dnf, brew, winget. Épingle ce qu'il te faut, copie en un clic.</p>
+    </div>
+    <div class="term-line" data-line="3">
+      <div class="hero-actions">
+        <button type="button" class="launch-btn" id="exploreBtn">Explorer le deck →</button>
+        <button type="button" class="btn-ghost" id="manifestoScroll">Voir le manifeste</button>
+      </div>
+    </div>
+    <div class="term-line hero-facts" data-line="4">
+      <div class="stat-widget">
+        <svg class="stat-ring" viewBox="0 0 40 40" width="34" height="34">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.15"/>
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100.5" stroke-dashoffset="26" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+        </svg>
+        <span id="heroSystemsCount">47 systèmes &amp; outils</span>
+      </div>
+      <div class="stat-widget">
+        <svg class="stat-ring" viewBox="0 0 40 40" width="34" height="34">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.15"/>
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100.5" stroke-dashoffset="12" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+        </svg>
+        <span id="heroCmdCount">4700+ commandes</span>
+      </div>
+      <div class="stat-widget">
+        <svg class="stat-ring" viewBox="0 0 40 40" width="34" height="34">
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.15"/>
+          <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100.5" stroke-dashoffset="100.5" stroke-linecap="round" transform="rotate(-90 20 20)"/>
+        </svg>
+        <span>0 backend</span>
+      </div>
+      <span class="hero-cursor">▍</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DECK ============ -->
+<div class="deck-anchor" id="deck"></div>
+<div class="section-label"><span class="accent">// </span>LE DECK</div>
+<h2 class="deck-title">Explorateur de commandes</h2>
+
+<nav class="family-switch" id="familySwitch" aria-label="Filtrer par famille de systèmes"></nav>
+<nav class="group-switch" id="groupSwitch" aria-label="Filtrer par groupe"></nav>
+<nav class="os-switch" id="distroSwitch" aria-label="Sélectionner un système"></nav>
+
+<div class="tag-bar" id="tagBar"></div>
+<div class="tag-results" id="tagResults"></div>
+
+<div class="os-head" id="osHead"></div>
+
+<div class="controls">
+  <div class="search-wrap">
+    <div class="search-bar">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="search" type="text" placeholder="chercher une commande ou une action…" autocomplete="off">
+      <span class="match-count" id="matchCount" aria-live="polite"></span>
+    </div>
+    <div class="recent-searches" id="recentSearches"></div>
+  </div>
+  <div class="cat-filters" id="catFilters"></div>
+</div>
+
+<main class="content" id="content"></main>
+
+<div class="no-results" id="noResults" role="status" aria-live="polite">
+  <span class="nr-glyph">⌀</span>
+  <p>Aucune commande ne correspond.</p>
+  <span class="nr-hint">essaie un autre mot, ou change de catégorie</span>
+</div>
+
+<!-- ============ SHORTCUTS HELP ============ -->
+<div class="shortcuts-overlay" id="shortcutsOverlay" role="dialog" aria-modal="true" aria-labelledby="shortcutsHeadTitle">
+  <div class="shortcuts-panel">
+    <div class="shortcuts-head">
+      <h2 id="shortcutsHeadTitle">Raccourcis clavier</h2>
+      <button type="button" class="close-btn" id="closeShortcuts" aria-label="Fermer">✕</button>
+    </div>
+    <div class="shortcuts-list">
+      <div class="shortcuts-row"><span><kbd>Ctrl</kbd> + <kbd>K</kbd></span><span>Recherche globale (tous les systèmes)</span></div>
+      <div class="shortcuts-row"><span><kbd>↑</kbd> <kbd>↓</kbd></span><span>Naviguer dans les résultats de recherche</span></div>
+      <div class="shortcuts-row"><span><kbd>↵</kbd></span><span>Ouvrir le résultat sélectionné</span></div>
+      <div class="shortcuts-row"><span><kbd>Échap</kbd></span><span>Fermer la fenêtre active</span></div>
+      <div class="shortcuts-row"><span><kbd>?</kbd></span><span>Afficher cette aide</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMMAND PALETTE (global search) ============ -->
+<div class="palette-overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Recherche globale dans les 47 systèmes">
+  <div class="palette-panel">
+    <div class="palette-search">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input id="paletteInput" type="text" placeholder="chercher une commande dans les 47 systèmes…" autocomplete="off">
+      <kbd>Échap</kbd>
+    </div>
+    <div class="palette-results" id="paletteResults"></div>
+    <div class="palette-empty" id="paletteEmpty">
+      <span class="nr-glyph">⌀</span>
+      <p>Aucune commande ne correspond.</p>
+    </div>
+    <div class="palette-hint"><span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span><span><kbd>↵</kbd> ouvrir</span><span><kbd>Échap</kbd> fermer</span></div>
+  </div>
+</div>
+
+<!-- ============ SAVED VIEW ============ -->
+<div class="saved-overlay" id="savedOverlay" role="dialog" aria-modal="true" aria-labelledby="savedHeadTitle">
+  <div class="saved-panel">
+    <div class="saved-head">
+      <h2 id="savedHeadTitle">Favoris <span id="savedHeadCount">(0)</span></h2>
+      <div class="saved-head-actions">
+        <button type="button" class="copy-all-btn" id="copyAllSaved" title="Copier tous les favoris" aria-label="Copier tous les favoris">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>Copier tout</span>
+        </button>
+        <button type="button" class="close-btn" id="closeSaved" aria-label="Fermer">✕</button>
+      </div>
+    </div>
+    <div class="saved-list" id="savedList"></div>
+    <div class="saved-empty" id="savedEmpty">
+      <span class="nr-glyph">☆</span>
+      <p>Aucun favori pour l'instant.</p>
+      <span class="nr-hint">clique l'étoile sur une commande pour l'épingler ici — tous systèmes confondus</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ COMPARE VIEW ============ -->
+<div class="compare-overlay" id="compareOverlay" role="dialog" aria-modal="true" aria-labelledby="compareHeadTitle">
+  <div class="compare-panel">
+    <div class="compare-head">
+      <h2 id="compareHeadTitle">Comparer deux systèmes</h2>
+      <button type="button" class="close-btn" id="closeCompare" aria-label="Fermer">✕</button>
+    </div>
+    <div class="compare-selects">
+      <select id="compareA" aria-label="Premier système"></select>
+      <button type="button" class="compare-swap" id="compareSwap" title="Inverser" aria-label="Inverser l'ordre">⇄</button>
+      <select id="compareB" aria-label="Second système"></select>
+    </div>
+    <div class="compare-body" id="compareBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="footer-top">
+    <div class="footer-brand">
+      <div class="brand"><span class="brand-mark"><svg viewBox="0 0 32 32" width="18" height="18"><rect x="8" y="9" width="13" height="17" rx="2.6" fill="none" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.5" transform="rotate(-13 16 17)"/><rect x="9" y="8" width="13" height="17" rx="2.6" fill="none" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.5" transform="rotate(6 16 17)"/><rect x="9.5" y="7.5" width="13" height="18" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><line x1="13" y1="12" x2="19" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span>cheat<span class="slash">/</span>deck</span></div>
+      <p>Le cheatsheet pour ceux qui vivent dans le terminal. Données 100% côté client, aucun compte requis, aucun tracker.</p>
+    </div>
+    <div class="footer-cols">
+      <div class="footer-col">
+        <h4>DEBIAN &amp; ARCH</h4>
+        <a data-os-link="debian" href="#deck">Debian</a>
+        <a data-os-link="ubuntu" href="#deck">Ubuntu</a>
+        <a data-os-link="mint" href="#deck">Linux Mint</a>
+        <a data-os-link="kali" href="#deck">Kali Linux</a>
+        <a data-os-link="raspberrypi" href="#deck">Raspberry Pi OS</a>
+        <a data-os-link="pop" href="#deck">Pop!_OS</a>
+        <a data-os-link="mx" href="#deck">MX Linux</a>
+        <a data-os-link="zorin" href="#deck">Zorin OS</a>
+        <a data-os-link="pikaos" href="#deck">PikaOS</a>
+        <a data-os-link="anduinos" href="#deck">AnduinOS</a>
+        <a data-os-link="proxmox" href="#deck">Proxmox VE</a>
+        <a data-os-link="truenas" href="#deck">TrueNAS SCALE</a>
+        <a data-os-link="deepin" href="#deck">Deepin</a>
+        <a data-os-link="elementary" href="#deck">elementary OS</a>
+        <a data-os-link="arch" href="#deck">Arch</a>
+        <a data-os-link="manjaro" href="#deck">Manjaro</a>
+        <a data-os-link="cachyos" href="#deck">CachyOS</a>
+        <a data-os-link="steamos" href="#deck">SteamOS</a>
+        <a data-os-link="garuda" href="#deck">Garuda</a>
+      </div>
+      <div class="footer-col">
+        <h4>FEDORA &amp; INDÉPENDANTES</h4>
+        <a data-os-link="fedora" href="#deck">Fedora</a>
+        <a data-os-link="rocky" href="#deck">Rocky Linux</a>
+        <a data-os-link="bazzite" href="#deck">Bazzite</a>
+        <a data-os-link="nobara" href="#deck">Nobara</a>
+        <a data-os-link="asahi" href="#deck">Asahi Linux</a>
+        <a data-os-link="alpine" href="#deck">Alpine</a>
+        <a data-os-link="opensuse" href="#deck">openSUSE</a>
+        <a data-os-link="nixos" href="#deck">NixOS</a>
+        <a data-os-link="gentoo" href="#deck">Gentoo</a>
+        <a data-os-link="void" href="#deck">Void</a>
+        <a data-os-link="slackware" href="#deck">Slackware</a>
+        <a data-os-link="qubes" href="#deck">Qubes OS</a>
+        <a data-os-link="chromeos" href="#deck">ChromeOS Flex</a>
+      </div>
+      <div class="footer-col">
+        <h4>AUTRES OS</h4>
+        <a data-os-link="freebsd" href="#deck">FreeBSD</a>
+        <a data-os-link="openbsd" href="#deck">OpenBSD</a>
+        <a data-os-link="macos" href="#deck">macOS</a>
+        <a data-os-link="windows" href="#deck">Windows</a>
+      </div>
+      <div class="footer-col">
+        <h4>OUTILS</h4>
+        <a data-os-link="git" href="#deck">Git</a>
+        <a data-os-link="tmux" href="#deck">tmux</a>
+        <a data-os-link="ssh" href="#deck">SSH</a>
+        <a data-os-link="vim" href="#deck">Vim / Neovim</a>
+        <a data-os-link="docker" href="#deck">Docker</a>
+        <a data-os-link="systemd" href="#deck">systemd</a>
+        <a data-os-link="cron" href="#deck">cron</a>
+      </div>
+      <div class="footer-col">
+        <h4>DECK</h4>
+        <a href="#deck">Commandes</a>
+        <a href="#hero">Manifeste</a>
+        <a href="#top">Retour en haut</a>
+      </div>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 cheat/deck · conçu pour le noir</span>
+    <span id="footerCmdCount"></span>
+    <span>Ctrl/Cmd + K pour chercher</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
+<script src="data.js?v=20260807a" defer></script>
+<script src="app.js?v=20260807a" defer></script>
+</body>
+</html>

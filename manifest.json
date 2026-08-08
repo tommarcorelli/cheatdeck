@@ -1,0 +1,17 @@
+{
+  "name": "cheat/deck — la ligne de commande, enfin mémorisée",
+  "short_name": "cheat/deck",
+  "description": "Cheatsheet de commandes multi-systèmes (Linux, BSD, macOS, Windows, Git, Docker, tmux, SSH, Vim…), cherchable et utilisable hors-ligne.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#04101c",
+  "theme_color": "#05070a",
+  "lang": "fr",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
