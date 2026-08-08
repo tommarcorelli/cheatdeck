@@ -991,6 +991,26 @@ function initServiceWorker(){
   });
 }
 
+/* ==========================================================
+   Lazy-load des logos officiels (OS_ICONS, ~27 Ko gzippés) après le
+   premier rendu : les onglets/badges affichent le badge textuel
+   (OS_META[os].glyph) en attendant, ce qui garde le chargement
+   initial léger sans jamais bloquer l'affichage sur les icônes.
+   ========================================================== */
+let iconsLoaded = false;
+function loadIcons(){
+  if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
+  const s = document.createElement('script');
+  s.src = 'icons.js?v=20260808a';
+  s.onload = () => {
+    iconsLoaded = true;
+    renderDistroTabs();
+    renderOsHead();
+    if(activeTag) activateTag(activeTag);
+  };
+  document.head.appendChild(s);
+}
+
 function initFooterLinks(){
   document.getElementById('manifestoScroll').addEventListener('click', () => {
     document.getElementById('hero').scrollIntoView({ behavior: 'smooth' });
@@ -1020,5 +1040,7 @@ function init(){
   initLenis();
   playHero();
   initParallax();
+  if('requestIdleCallback' in window) requestIdleCallback(loadIcons, { timeout: 2000 });
+  else setTimeout(loadIcons, 300);
 }
 init();

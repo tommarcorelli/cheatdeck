@@ -29,8 +29,8 @@ echo "→ Minification app.js et style.css..."
 npx terser app.js -c -m -o dist/app.js
 npx csso style.css -o dist/style.css
 
-echo "→ Copie des fichiers inchangés (data.js, sw.js, manifest, icônes, assets)..."
-cp data.js sw.js manifest.json favicon.svg og-image.jpg robots.txt dist/
+echo "→ Copie des fichiers inchangés (data.js, icons.js, sw.js, manifest, icônes, assets)..."
+cp data.js icons.js sw.js manifest.json favicon.svg og-image.jpg robots.txt dist/
 cp icons/*.png dist/icons/
 
 echo "→ Génération de dist/index.html (mêmes chemins de fichiers, contenu identique)..."
