@@ -5,14 +5,14 @@
    Bump CACHE_VERSION à chaque changement de app.js/data.js/style.css
    pour forcer le renouvellement du cache chez les visiteurs.
    ========================================================== */
-const CACHE_VERSION = 'cheatdeck-20260808a';
+const CACHE_VERSION = 'cheatdeck-20260808b';
 const CORE_ASSETS = [
   './',
   './index.html',
-  './style.css?v=20260808a',
-  './app.js?v=20260808a',
-  './data.js?v=20260808a',
-  './icons.js?v=20260808a',
+  './style.css?v=20260808b',
+  './app.js?v=20260808b',
+  './data.js?v=20260808b',
+  './icons.js?v=20260808b',
   './manifest.json',
   './favicon.svg',
   './icons/icon-192.png',

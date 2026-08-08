@@ -168,8 +168,8 @@ const catFiltersEl = document.getElementById('catFilters');
 function renderCatFilters(){
   const osData = DATA[currentOS];
   const active = CATEGORIES.filter(c => osData[c.id] && osData[c.id].length);
-  catFiltersEl.innerHTML = `<button type="button" class="cat-pill active" data-cat="all">Tout</button>` +
-    active.map(c => `<button type="button" class="cat-pill" data-cat="${c.id}"><span class="cat-pill-icon">${iconFor(c.id)}</span>${labelFor(currentOS, c.id, c.label)}</button>`).join('');
+  catFiltersEl.innerHTML = `<button type="button" class="cat-pill ${currentCat === 'all' ? 'active' : ''}" data-cat="all">Tout</button>` +
+    active.map(c => `<button type="button" class="cat-pill ${currentCat === c.id ? 'active' : ''}" data-cat="${c.id}"><span class="cat-pill-icon">${iconFor(c.id)}</span>${labelFor(currentOS, c.id, c.label)}</button>`).join('');
 }
 
 /* ==========================================================
@@ -343,17 +343,18 @@ catFiltersEl.addEventListener('click', (e) => {
   catFiltersEl.querySelectorAll('.cat-pill').forEach(p => p.classList.remove('active'));
   btn.classList.add('active');
   applyFilters();
+  setHash(false);
 });
 
 /* ==========================================================
    Family + group + distro switching
    ========================================================== */
-function switchTo(os, scroll){
+function switchTo(os, scroll, cat){
   currentOS = os;
   currentFamily = familyOf(os).id;
   const g = groupOf(os);
   currentGroup = g ? g.id : null;
-  currentCat = 'all';
+  currentCat = (cat && DATA[os][cat]) ? cat : 'all';
   searchInput.value = '';
   if(activeTag){ activeTag = null; tagResultsEl.classList.remove('show'); toggleNormalNav(true); renderTagBar(); }
   renderFamilyTabs();
@@ -362,10 +363,70 @@ function switchTo(os, scroll){
   renderOsHead();
   renderCatFilters();
   renderContent();
+  setHash(false);
   if(scroll) document.querySelector('.deck-anchor').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 window.cheatdeckSwitchTo = switchTo;
+
+/* ==========================================================
+   Deep links — the URL hash mirrors the current system/category
+   (#docker or #docker/compose) so a view can be bookmarked or
+   shared. Plain anchors (#hero, #deck, #top) aren't OS ids, so
+   they fall through untouched and keep their native scroll behavior.
+   ========================================================== */
+function currentHashTarget(){
+  return currentOS + (currentCat !== 'all' ? '/' + currentCat : '');
+}
+function setHash(replace){
+  const target = currentHashTarget();
+  if(location.hash.slice(1) === target) return;
+  if(replace) history.replaceState(null, '', '#' + target);
+  else location.hash = target;
+}
+function resolveInitialState(){
+  const raw = location.hash.slice(1);
+  if(!raw) return false;
+  const [os, cat] = raw.split('/');
+  if(!OS_META[os] || !DATA[os]) return false;
+  currentOS = os;
+  currentFamily = familyOf(os).id;
+  const g = groupOf(os);
+  currentGroup = g ? g.id : null;
+  currentCat = (cat && DATA[os][cat]) ? cat : 'all';
+  return true;
+}
+function applyHash(){
+  const raw = location.hash.slice(1);
+  if(!raw) return;
+  const [os, cat] = raw.split('/');
+  if(!OS_META[os] || !DATA[os]) return; // not an OS route — leave native anchors alone
+  const resolvedCat = (cat && DATA[os][cat]) ? cat : 'all';
+  if(os === currentOS && resolvedCat === currentCat) return;
+  switchTo(os, true, resolvedCat);
+}
+window.addEventListener('hashchange', applyHash);
+
+/* ==========================================================
+   Keyboard navigation between systems (← →) — cycles through the
+   distros of the currently visible group/family, same list shown
+   in the distro switcher.
+   ========================================================== */
+function currentDistroList(){
+  const fam = FAMILIES.find(f => f.id === currentFamily);
+  return fam.groups ? LINUX_GROUPS.find(g => g.id === currentGroup).distros : fam.distros;
+}
+function navigateOS(direction){
+  const list = currentDistroList();
+  if(list.length <= 1) return;
+  const idx = list.indexOf(currentOS);
+  if(idx === -1) return;
+  const next = list[(idx + direction + list.length) % list.length];
+  switchTo(next, false);
+}
+function isInsideOpenOverlay(el){
+  return !!(el && el.closest && el.closest('.saved-overlay.open, .compare-overlay.open, .palette-overlay.open, .shortcuts-overlay.open'));
+}
 
 familySwitchEl.addEventListener('click', (e) => {
   const btn = e.target.closest('.family-tab');
@@ -921,6 +982,10 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     openShortcuts();
   }
+  if((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !isTypingTarget(e.target) && !isInsideOpenOverlay(e.target)){
+    e.preventDefault();
+    navigateOS(e.key === 'ArrowLeft' ? -1 : 1);
+  }
   if(e.key === 'Escape'){ closeSaved(); closeCompare(); closePalette(); closeShortcuts(); }
 });
 
@@ -1001,7 +1066,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260808a';
+  s.src = 'icons.js?v=20260808b';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();
@@ -1024,6 +1089,7 @@ function initFooterLinks(){
 }
 
 function init(){
+  const cameFromDeepLink = resolveInitialState();
   initTheme();
   initServiceWorker();
   renderCommandCounts();
@@ -1040,6 +1106,8 @@ function init(){
   initLenis();
   playHero();
   initParallax();
+  setHash(true);
+  if(cameFromDeepLink) document.querySelector('.deck-anchor').scrollIntoView({ behavior: 'auto', block: 'start' });
   if('requestIdleCallback' in window) requestIdleCallback(loadIcons, { timeout: 2000 });
   else setTimeout(loadIcons, 300);
 }
