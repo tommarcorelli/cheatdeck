@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260808b">
+<link rel="stylesheet" href="style.css?v=20260808c">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -171,6 +171,17 @@
   </div>
 </div>
 
+<!-- ============ CHANGELOG ============ -->
+<div class="shortcuts-overlay" id="changelogOverlay" role="dialog" aria-modal="true" aria-labelledby="changelogHeadTitle">
+  <div class="shortcuts-panel changelog-panel">
+    <div class="shortcuts-head">
+      <h2 id="changelogHeadTitle">Nouveautés</h2>
+      <button type="button" class="close-btn" id="closeChangelog" aria-label="Fermer">✕</button>
+    </div>
+    <div class="changelog-list" id="changelogList"></div>
+  </div>
+</div>
+
 <!-- ============ COMMAND PALETTE (global search) ============ -->
 <div class="palette-overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Recherche globale dans les 51 systèmes">
   <div class="palette-panel">
@@ -194,6 +205,13 @@
     <div class="saved-head">
       <h2 id="savedHeadTitle">Favoris <span id="savedHeadCount">(0)</span></h2>
       <div class="saved-head-actions">
+        <button type="button" class="copy-all-btn icon-only" id="exportSaved" title="Exporter les favoris en JSON" aria-label="Exporter les favoris en JSON">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button type="button" class="copy-all-btn icon-only" id="importSaved" title="Importer des favoris depuis un fichier JSON" aria-label="Importer des favoris depuis un fichier JSON">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 8 12 3 17 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <input type="file" id="importSavedFile" accept="application/json" hidden>
         <button type="button" class="copy-all-btn" id="copyAllSaved" title="Copier tous les favoris" aria-label="Copier tous les favoris">
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           <span>Copier tout</span>
@@ -299,6 +317,7 @@
         <h4>DECK</h4>
         <a href="#deck">Commandes</a>
         <a href="#hero">Manifeste</a>
+        <a href="#" id="changelogLink">Nouveautés</a>
         <a href="#top">Retour en haut</a>
       </div>
     </div>
@@ -311,7 +330,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
-<script src="data.js?v=20260808b" defer></script>
-<script src="app.js?v=20260808b" defer></script>
+<script src="data.js?v=20260808c" defer></script>
+<script src="app.js?v=20260808c" defer></script>
 </body>
 </html>

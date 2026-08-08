@@ -554,6 +554,8 @@ h1, h2, h3{
 .copy-all-btn span{ white-space: nowrap; }
 .copy-all-btn:hover{ color: var(--cyan-soft); border-color: rgba(var(--cyan-rgb),0.35); background: var(--glass-hi); }
 .copy-all-btn.copied{ color: var(--green); border-color: var(--green); }
+.copy-all-btn.icon-only{ padding: 5px 8px; }
+.copy-all-btn.icon-only span{ display: none; }
 @media (max-width: 560px){ .copy-all-btn span{ display: none; } }
 
 .cmd-grid{
@@ -761,6 +763,22 @@ h1, h2, h3{
   font-family: var(--font-mono); font-size: 11px; padding: 3px 7px;
   border: 1px solid var(--line); border-radius: 5px; color: var(--fg); background: var(--glass);
 }
+
+/* ==========================================================
+   Changelog (reuses .shortcuts-overlay/.shortcuts-panel)
+   ========================================================== */
+.changelog-panel{ width: min(480px, 100%); max-height: 78vh; overflow-y: auto; }
+.changelog-list{ display: flex; flex-direction: column; gap: 18px; }
+.changelog-entry-date{
+  font-family: var(--font-mono); font-size: 11px; color: var(--cyan-soft);
+  letter-spacing: 0.05em; margin-bottom: 8px;
+}
+.changelog-entry-items{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.changelog-entry-items li{
+  font-size: 13px; color: var(--fg-dim); line-height: 1.5;
+  padding-left: 16px; position: relative;
+}
+.changelog-entry-items li::before{ content: '—'; position: absolute; left: 0; color: var(--fg-mute); }
 
 /* ==========================================================
    Command palette (Ctrl+K — searches all 47 systems at once)

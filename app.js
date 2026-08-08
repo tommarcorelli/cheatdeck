@@ -694,6 +694,56 @@ document.getElementById('copyAllSaved').addEventListener('click', (e) => {
   copyCmd(favorites.map(f => f.cmd).join('\n'), e.currentTarget);
 });
 
+/* ---- export / import favorites as JSON — the only cross-device sync
+   possible without a backend: the user carries the file themselves. ---- */
+function exportFavorites(){
+  if(!favorites.length){ showToast('Aucun favori à exporter'); return; }
+  const blob = new Blob([JSON.stringify(favorites, null, 2)], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cheatdeck-favoris.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Favoris exportés');
+}
+function importFavoritesFromFile(file){
+  const reader = new FileReader();
+  reader.onload = () => {
+    let incoming;
+    try{ incoming = JSON.parse(reader.result); }
+    catch(e){ showToast('Fichier JSON invalide'); return; }
+    if(!Array.isArray(incoming)){ showToast('Fichier JSON invalide'); return; }
+    let added = 0;
+    incoming.forEach(item => {
+      const valid = item && typeof item.key === 'string' && typeof item.action === 'string' && typeof item.cmd === 'string'
+        && OS_META[item.os] && DATA[item.os] && DATA[item.os][item.cat];
+      if(!valid || favorites.some(f => f.key === item.key)) return;
+      favorites.push({ key: item.key, os: item.os, cat: item.cat, action: item.action, cmd: item.cmd });
+      added++;
+    });
+    if(added){
+      saveFavorites(favorites);
+      updateSavedCount();
+      renderSavedList();
+      document.querySelectorAll('.star-btn').forEach(btn => {
+        if(isFav(btn.dataset.key)) btn.classList.add('starred');
+      });
+    }
+    showToast(added ? `${added} favori${added > 1 ? 's' : ''} importé${added > 1 ? 's' : ''}` : 'Rien de nouveau à importer');
+  };
+  reader.readAsText(file);
+}
+document.getElementById('exportSaved').addEventListener('click', exportFavorites);
+document.getElementById('importSaved').addEventListener('click', () => document.getElementById('importSavedFile').click());
+document.getElementById('importSavedFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(file) importFavoritesFromFile(file);
+  e.target.value = '';
+});
+
 document.getElementById('savedList').addEventListener('click', (e) => {
   const copyBtn = e.target.closest('.copy-btn');
   if(copyBtn){
@@ -969,6 +1019,54 @@ document.getElementById('closeShortcuts').addEventListener('click', closeShortcu
 shortcutsOverlay.addEventListener('click', (e) => { if(e.target === shortcutsOverlay) closeShortcuts(); });
 shortcutsOverlay.addEventListener('keydown', (e) => trapFocus(e, shortcutsOverlay));
 
+/* ==========================================================
+   Changelog — un vrai historique des changements livrés, pas des
+   dates de "vérification" par système (impossible à garantir
+   honnêtement sur 5000+ commandes). Nouvelle entrée à ajouter en
+   tête à chaque évolution notable du site.
+   ========================================================== */
+const CHANGELOG = [
+  {
+    date: '2026-08-08',
+    items: [
+      'Recherche globale (Ctrl+K) : cherche dans les 51 systèmes à la fois, plus seulement celui affiché.',
+      'Liens profonds : chaque système/catégorie a sa propre URL, partageable et compatible précédent/suivant du navigateur.',
+      'Navigation clavier : flèches ← → pour changer de système, modal "?" listant tous les raccourcis.',
+      '4 nouveaux outils : kubectl, Terraform, Ansible, Python (venv/pip) — 155 commandes.',
+      'Export/import des favoris en JSON — pour les transporter d\'un appareil à l\'autre sans compte.',
+      'Thème clair/sombre : respecte la préférence système au premier chargement.',
+      'Chargement des icônes différé (perf) et Content-Security-Policy ajoutée.',
+    ],
+  },
+];
+const changelogOverlay = document.getElementById('changelogOverlay');
+let changelogLastFocus = null;
+function renderChangelog(){
+  document.getElementById('changelogList').innerHTML = CHANGELOG.map(entry => `
+    <div class="changelog-entry">
+      <div class="changelog-entry-date">${entry.date}</div>
+      <ul class="changelog-entry-items">${entry.items.map(i => `<li>${i}</li>`).join('')}</ul>
+    </div>
+  `).join('');
+}
+function openChangelog(){
+  changelogLastFocus = document.activeElement;
+  renderChangelog();
+  changelogOverlay.classList.add('open');
+  document.body.classList.add('lock-scroll');
+  document.getElementById('closeChangelog').focus();
+}
+function closeChangelog(){
+  if(!changelogOverlay.classList.contains('open')) return;
+  changelogOverlay.classList.remove('open');
+  document.body.classList.remove('lock-scroll');
+  changelogLastFocus?.focus();
+}
+document.getElementById('changelogLink').addEventListener('click', (e) => { e.preventDefault(); openChangelog(); });
+document.getElementById('closeChangelog').addEventListener('click', closeChangelog);
+changelogOverlay.addEventListener('click', (e) => { if(e.target === changelogOverlay) closeChangelog(); });
+changelogOverlay.addEventListener('keydown', (e) => trapFocus(e, changelogOverlay));
+
 function isTypingTarget(el){
   return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable);
 }
@@ -986,7 +1084,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     navigateOS(e.key === 'ArrowLeft' ? -1 : 1);
   }
-  if(e.key === 'Escape'){ closeSaved(); closeCompare(); closePalette(); closeShortcuts(); }
+  if(e.key === 'Escape'){ closeSaved(); closeCompare(); closePalette(); closeShortcuts(); closeChangelog(); }
 });
 
 document.getElementById('launchBtn').addEventListener('click', () => {
@@ -1066,7 +1164,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260808b';
+  s.src = 'icons.js?v=20260808c';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();
