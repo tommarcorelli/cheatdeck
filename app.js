@@ -263,6 +263,49 @@ function escapeHtml(s){
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+
+/* ==========================================================
+   Commandes destructrices
+   Une cheatsheet sert à copier-coller sans réfléchir : les
+   commandes qui ne se rattrapent pas doivent le dire elles-mêmes.
+   Le repérage se fait sur la commande, pas sur une annotation à
+   maintenir dans data.js — une nouvelle entrée est couverte
+   automatiquement. Le premier motif qui correspond gagne, donc les
+   cas précis (docker, git, kubectl) passent avant les génériques.
+   ========================================================== */
+const RISKY_COMMANDS = [
+  [/:\(\)\s*\{/, 'Fork bomb : sature la machine jusqu’au redémarrage.'],
+  [/\b(terraform|vagrant)\s+destroy\b/, 'Détruit l’infrastructure décrite, sans retour possible.'],
+  [/\bkubectl\s+delete\b/, 'Supprime la ressource du cluster immédiatement.'],
+  [/\b(docker|podman)\s+[a-z]*\s*prune\b/, 'Supprime tout ce qui n’est pas utilisé, pas seulement l’élément visé.'],
+  [/\b(docker|podman)\s+(rm|rmi)\s+-[a-z]*f/, 'Force la suppression, conteneur en marche compris.'],
+  [/\bgit\s+push\b.*(--force|-f\b)/, 'Réécrit l’historique distant : les autres clones ne suivront plus.'],
+  [/\bgit\s+reset\s+--hard\b/, 'Jette les modifications non validées, sans confirmation.'],
+  [/\bgit\s+clean\s+-[a-z]*d/, 'Supprime les fichiers non suivis par Git.'],
+  [/\bmkfs[.\s]|\bwipefs\b|\bfdisk\b|\bparted\b/, 'Touche à la table de partitions : tout le disque est en jeu.'],
+  [/\bdd\s+if=/, 'Écrit directement sur le périphérique, sans filet.'],
+  [/>\s*\/dev\/(sd|nvme|disk|mmcblk)/, 'Écrit directement sur un disque.'],
+  [/\bshred\b/, 'Effacement irrécupérable, même avec un outil de récupération.'],
+  [/\b(userdel|groupdel)\b/, 'Supprime le compte — et son dossier personnel avec -r.'],
+  [/\bchmod\s+(-R\s+)?777\b/, 'Ouvre les droits à tout le monde : à éviter hors bac à sable.'],
+  [/\b(iptables\s+-F|nft\s+flush)\b/, 'Vide les règles du pare-feu : la machine se retrouve ouverte.'],
+  [/(^|[\s;|&])(sudo\s+|doas\s+)?rm\s+-[a-z]*r/, 'Suppression récursive : ni corbeille, ni confirmation.'],
+];
+function riskOf(cmd){
+  for(const [pattern, warning] of RISKY_COMMANDS){
+    if(pattern.test(cmd)) return warning;
+  }
+  return null;
+}
+function riskHtml(cmd){
+  const warning = riskOf(cmd);
+  if(!warning) return '';
+  return '<div class="cmd-risk"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' +
+    '<line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17.1"/></svg>' +
+    '<span>' + escapeHtml(warning) + '</span></div>';
+}
+
 function renderContent(){
   const osData = DATA[currentOS];
   contentEl.innerHTML = CATEGORIES.map(cat => {
@@ -274,7 +317,7 @@ function renderContent(){
       const starred = isFav(key);
       const searchBlob = normalize(action + ' ' + cmd);
       return `
-        <div class="cmd-card" data-search="${searchBlob.replace(/"/g,'&quot;')}" data-cat="${cat.id}">
+        <div class="cmd-card ${riskOf(cmd) ? 'risky' : ''}" data-search="${searchBlob.replace(/"/g,'&quot;')}" data-cat="${cat.id}">
           <div class="cmd-top">
             <span class="cmd-action" data-raw="${escapeHtml(action)}">${escapeHtml(action)}</span>
             <button type="button" class="star-btn ${starred ? 'starred' : ''}" data-key="${key}" data-os="${currentOS}" data-cat="${cat.id}" data-idx="${idx}" title="Épingler" aria-label="Épingler">
@@ -288,6 +331,7 @@ function renderContent(){
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
           </div>
+          ${riskHtml(cmd)}
           ${note ? `<div class="cmd-note">${escapeHtml(note)}</div>` : ''}
         </div>
       `;
@@ -800,6 +844,7 @@ function renderSavedList(){
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
         </button>
       </div>
+      ${riskHtml(f.cmd)}
     </div>
   `).join('');
 }
@@ -1337,6 +1382,7 @@ function renderDrillCard(){
     : 'nouvelle';
   document.getElementById('drillCardAction').textContent = card.action;
   document.getElementById('drillCardCmd').innerHTML = '<span class="prompt">$</span> ' + escapeHtml(card.cmd);
+  document.getElementById('drillCardRisk').innerHTML = riskHtml(card.cmd);
   const noteEl = document.getElementById('drillCardNote');
   noteEl.textContent = card.note || '';
   noteEl.style.display = card.note ? '' : 'none';
@@ -1389,6 +1435,7 @@ function renderDrillResult(){
               '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
             '</button>' +
           '</div>' +
+          riskHtml(card.cmd) +
         '</div>'
       )).join('')
     : '<div class="drill-missed-title">Rien à revoir sur ce tirage.</div>';
@@ -1486,6 +1533,7 @@ const CHANGELOG = [
       'Recherche globale classée par pertinence (et non plus par ordre du fichier) : le système ouvert et les correspondances exactes remontent en tête.',
       'Ctrl+Entrée copie le résultat sélectionné sans quitter la recherche.',
       'Les flèches ← → ne changent plus de système quand une fenêtre est ouverte par-dessus.',
+      'Les commandes qui ne se rattrapent pas (rm -rf, terraform destroy, docker prune, git push --force…) portent maintenant un avertissement, sur la carte comme en révision.',
       'Les noms de systèmes dont la couleur de marque est trop sombre (AlmaLinux, Devuan, Slackware…) sont enfin lisibles sur le thème sombre.',
       'Les favoris ne se décalent plus quand une commande est ajoutée au milieu d’une catégorie.',
     ],
@@ -1632,7 +1680,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260824a';
+  s.src = 'icons.js?v=20260824b';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();
