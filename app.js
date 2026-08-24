@@ -38,15 +38,98 @@ const STORAGE_KEY = 'cheatdeck_favorites_v2';
 function loadFavorites(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ return []; } }
 function saveFavorites(list){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }catch(e){} }
 let favorites = loadFavorites();
-function favKey(os, cat, idx){ return `${os}::${cat}::${idx}`; }
+/* La clé d'un favori était l'index de la commande dans data.js : insérer une
+   commande au milieu d'une catégorie décalait toutes les étoiles suivantes.
+   On dérive maintenant la clé de la commande elle-même, qui ne bouge pas. */
+function cmdHash(cmd){
+  let h = 5381;
+  for(let i = 0; i < cmd.length; i++) h = (((h * 33) ^ cmd.charCodeAt(i)) >>> 0);
+  return h.toString(36);
+}
+function favKey(os, cat, cmd){ return `${os}::${cat}::${cmdHash(String(cmd))}`; }
 function isFav(key){ return favorites.some(f => f.key === key); }
+
+/* Reprise des favoris enregistrés avec l'ancien format (…::12) : on
+   recalcule la clé à partir de la commande gardée dans le favori. */
+function migrateFavorites(){
+  let changed = false;
+  favorites = favorites.map(fav => {
+    if(!fav || !fav.cmd || !fav.key) return fav;
+    const parts = String(fav.key).split('::');
+    if(parts.length === 3 && /^\d+$/.test(parts[2])){
+      changed = true;
+      return { ...fav, key: favKey(fav.os, fav.cat, fav.cmd) };
+    }
+    return fav;
+  });
+  if(changed) saveFavorites(favorites);
+}
+migrateFavorites();
 
 /* ==========================================================
    Theme (dark default, light optional — persisted)
    ========================================================== */
 const THEME_KEY = 'cheatdeck_theme';
 function isLightTheme(){ return document.documentElement.getAttribute('data-theme') === 'light'; }
-function badgeTextColor(hex){ return isLightTheme() ? 'var(--fg)' : hex; }
+
+/* ---- couleurs de marque lisibles ----
+   La moitié des couleurs officielles (le noir d'AlmaLinux, le pourpre de
+   Devuan, le rouge Debian…) ne passent pas en texte sur un fond sombre.
+   On garde la teinte de la marque mais on l'éclaircit juste assez pour
+   atteindre le rapport de contraste AA (4.5:1). Les aplats — pastilles,
+   bordures, tuiles — gardent eux la couleur exacte de la marque. */
+const READABLE_BG = '#0a1725'; // la surface la plus sombre où ces textes s'affichent
+const readableCache = new Map();
+function relLuminance(hex){
+  const c = hex.replace('#','');
+  const v = [0, 2, 4].map(i => parseInt(c.substr(i, 2), 16) / 255)
+    .map(x => x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4));
+  return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2];
+}
+function contrastRatio(a, b){
+  const l1 = relLuminance(a), l2 = relLuminance(b);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
+function hexToHsl(hex){
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16)/255, g = parseInt(c.substr(2,2),16)/255, b = parseInt(c.substr(4,2),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b), d = max - min;
+  let h = 0;
+  if(d){
+    if(max === r) h = ((g - b) / d) % 6;
+    else if(max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if(h < 0) h += 360;
+  }
+  const l = (max + min) / 2;
+  const sat = d ? d / (1 - Math.abs(2 * l - 1)) : 0;
+  return [h, sat, l];
+}
+function hslToHex(h, sat, l){
+  const c = (1 - Math.abs(2 * l - 1)) * sat;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  const [r, g, b] = h < 60 ? [c,x,0] : h < 120 ? [x,c,0] : h < 180 ? [0,c,x]
+    : h < 240 ? [0,x,c] : h < 300 ? [x,0,c] : [c,0,x];
+  const to = v => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return '#' + to(r) + to(g) + to(b);
+}
+function readableColor(hex){
+  if(readableCache.has(hex)) return readableCache.get(hex);
+  let out = hex;
+  if(contrastRatio(hex, READABLE_BG) < 4.5){
+    const [h, sat] = hexToHsl(hex);
+    for(let l = 0.4; l <= 0.94; l += 0.02){
+      const candidate = hslToHex(h, sat, l);
+      if(contrastRatio(candidate, READABLE_BG) >= 4.5){ out = candidate; break; }
+      out = candidate;
+    }
+  }
+  readableCache.set(hex, out);
+  return out;
+}
+function badgeTextColor(hex){ return isLightTheme() ? 'var(--fg)' : readableColor(hex); }
 function initTheme(){
   const saved = (() => { try{ return localStorage.getItem(THEME_KEY); }catch(e){ return null; } })();
   let theme = saved;
@@ -187,7 +270,7 @@ function renderContent(){
     if(!items || !items.length) return '';
     const label = labelFor(currentOS, cat.id, cat.label);
     const cards = items.map(([action, cmd, note], idx) => {
-      const key = favKey(currentOS, cat.id, idx);
+      const key = favKey(currentOS, cat.id, cmd);
       const starred = isFav(key);
       const searchBlob = normalize(action + ' ' + cmd);
       return `
@@ -963,7 +1046,7 @@ let paletteLastFocus = null;
 function paletteRowHtml(item, i){
   return `
     <button type="button" class="palette-row ${i === paletteSelected ? 'active' : ''}" data-index="${i}">
-      <span class="palette-row-os" style="color:${OS_META[item.os].color}"><span class="tag-dot" style="background:${OS_META[item.os].color}"></span>${OS_META[item.os].label}</span>
+      <span class="palette-row-os" style="color:${badgeTextColor(OS_META[item.os].color)}"><span class="tag-dot" style="background:${OS_META[item.os].color}"></span>${OS_META[item.os].label}</span>
       <span class="palette-row-action">${highlight(item.action, paletteTokens)}</span>
       <code class="palette-row-cmd">${highlight(item.cmd, paletteTokens)}</code>
     </button>
@@ -1032,7 +1115,7 @@ function jumpToPaletteItem(item){
   switchTo(item.os, true);
   searchInput.value = item.action;
   applyFilters();
-  const key = favKey(item.os, item.cat, item.idx);
+  const key = favKey(item.os, item.cat, item.cmd);
   setTimeout(() => {
     const card = document.querySelector(`.star-btn[data-key="${key}"]`)?.closest('.cmd-card');
     if(card){
@@ -1162,7 +1245,7 @@ function drillCardsFrom(source){
   for(const os of systems){
     for(const cat of Object.keys(DATA[os])){
       DATA[os][cat].forEach(([action, cmd, note], idx) => {
-        out.push({ os, cat, idx, action, cmd, note: note || '', key: favKey(os, cat, idx) });
+        out.push({ os, cat, idx, action, cmd, note: note || '', key: favKey(os, cat, cmd) });
       });
     }
   }
@@ -1403,6 +1486,8 @@ const CHANGELOG = [
       'Recherche globale classée par pertinence (et non plus par ordre du fichier) : le système ouvert et les correspondances exactes remontent en tête.',
       'Ctrl+Entrée copie le résultat sélectionné sans quitter la recherche.',
       'Les flèches ← → ne changent plus de système quand une fenêtre est ouverte par-dessus.',
+      'Les noms de systèmes dont la couleur de marque est trop sombre (AlmaLinux, Devuan, Slackware…) sont enfin lisibles sur le thème sombre.',
+      'Les favoris ne se décalent plus quand une commande est ajoutée au milieu d’une catégorie.',
     ],
   },
   {
