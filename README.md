@@ -20,6 +20,8 @@ Aucun compte, aucun tracker, aucun backend : tout tourne dans le navigateur.
 - **Comparer** deux systèmes côte à côte (apt contre pacman contre dnf…).
 - Les commandes irréversibles (rm -rf, terraform destroy, rsync --delete…)
   portent un avertissement.
+- Une note explique le piège ou le drapeau utile sur près des deux tiers
+  des commandes.
 - **Exporter** une cheatsheet complète en Markdown, ou l'imprimer.
 - **Consulter hors-ligne** : l'application est une PWA installable.
 

@@ -286,6 +286,9 @@ const RISKY_COMMANDS = [
   [/\bgit\s+push\b.*(--force|-f\b)/, 'Réécrit l’historique distant : les autres clones ne suivront plus.'],
   [/\bgit\s+reset\s+--hard\b/, 'Jette les modifications non validées, sans confirmation.'],
   [/\bgit\s+clean\s+-[a-z]*d/, 'Supprime les fichiers non suivis par Git.'],
+  [/\bgit\s+(checkout\s+--|restore)\s/, 'Écrase les modifications locales du fichier : rien ne les rattrape.'],
+  [/\bdocker\s+compose\s+down\b[^|]*\s-v\b/, 'Le -v emporte aussi les volumes : les données des bases partent avec.'],
+  [/\bcrontab\s+-r\b/, 'Supprime toute la crontab de l’utilisateur, sans confirmation.'],
   [/\bmkfs[.\s]|\bwipefs\b|\bfdisk\b|\bparted\b/, 'Touche à la table de partitions : tout le disque est en jeu.'],
   [/\bdd\s+if=/, 'Écrit directement sur le périphérique, sans filet.'],
   [/>\s*\/dev\/(sd|nvme|disk|mmcblk)/, 'Écrit directement sur un disque.'],
@@ -1537,6 +1540,7 @@ const CHANGELOG = [
     date: '2026-08-24',
     items: [
       '8 nouveaux outils : Bash (scripting), grep · sed · awk, curl, jq, rsync, Nmap, nftables & iptables, OpenSSL — 377 commandes de plus.',
+      '245 notes ajoutées : ce que fait vraiment un drapeau, le piège classique, la commande qui l\'a remplacée. 63% des cartes en ont une, contre 5% avant.',
       'Les sections commencent enfin par les bases : « Commandes de base » passe devant « Astuces » dans tous les decks d\'outils.',
       'Mode révision : le deck pose l\'action, à toi de retrouver la commande — les cartes ratées reviennent plus souvent, le score reste sur ta machine.',
       'Les termes cherchés sont surlignés dans les résultats, dans le deck comme dans la recherche globale.',
@@ -1690,7 +1694,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260824c';
+  s.src = 'icons.js?v=20260824d';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();
