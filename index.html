@@ -4,27 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>cheat/deck — la ligne de commande, enfin mémorisée</title>
-<meta name="description" content="Le cheatsheet de commandes le plus complet du web : 51 systèmes et outils (Linux, BSD, macOS, Windows, Git, Docker, Kubernetes, Terraform, Ansible, Python…), 5000+ commandes cherchables et copiables en un clic. 100% côté client.">
+<meta name="description" content="Le cheatsheet de commandes le plus complet du web : 59 systèmes et outils (Linux, BSD, macOS, Windows, Git, Docker, Kubernetes, curl, grep/sed/awk, Bash, Nmap, OpenSSL…), 5300+ commandes cherchables et copiables en un clic. 100% côté client.">
 <meta name="theme-color" content="#05070a">
 <meta name="color-scheme" content="dark light">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
 <meta property="og:type" content="website">
 <meta property="og:title" content="cheat/deck — la ligne de commande, enfin mémorisée">
-<meta property="og:description" content="51 systèmes et outils, 5000+ commandes cherchables et copiables en un clic. Aucun compte, aucun tracker, 100% côté client.">
+<meta property="og:description" content="59 systèmes et outils, 5300+ commandes cherchables et copiables en un clic. Aucun compte, aucun tracker, 100% côté client.">
 <meta property="og:image" content="og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="cheat/deck — cheatsheet de commandes pour 51 systèmes et outils">
+<meta property="og:image:alt" content="cheat/deck — cheatsheet de commandes pour 59 systèmes et outils">
 <meta property="og:locale" content="fr_FR">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="cheat/deck — la ligne de commande, enfin mémorisée">
-<meta name="twitter:description" content="51 systèmes et outils, 5000+ commandes cherchables et copiables en un clic.">
+<meta name="twitter:description" content="59 systèmes et outils, 5300+ commandes cherchables et copiables en un clic.">
 <meta name="twitter:image" content="og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260824b">
+<link rel="stylesheet" href="style.css?v=20260824c">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -46,7 +46,7 @@
     <a href="#hero">manifeste</a>
     <a href="#deck">commandes</a>
     <span>·</span>
-    <span><span class="count" id="topbarSystemsCount">51</span> systèmes</span>
+    <span><span class="count" id="topbarSystemsCount">59</span> systèmes</span>
   </nav>
   <div class="topbar-actions">
     <button type="button" class="kbtn icon-btn" id="themeToggle" title="Thème clair/sombre" aria-label="Basculer le thème">
@@ -102,14 +102,14 @@
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.15"/>
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100.5" stroke-dashoffset="26" stroke-linecap="round" transform="rotate(-90 20 20)"/>
         </svg>
-        <span id="heroSystemsCount">51 systèmes &amp; outils</span>
+        <span id="heroSystemsCount">59 systèmes &amp; outils</span>
       </div>
       <div class="stat-widget">
         <svg class="stat-ring" viewBox="0 0 40 40" width="34" height="34">
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" opacity="0.15"/>
           <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3.5" stroke-dasharray="100.5" stroke-dashoffset="12" stroke-linecap="round" transform="rotate(-90 20 20)"/>
         </svg>
-        <span id="heroCmdCount">5000+ commandes</span>
+        <span id="heroCmdCount">5300+ commandes</span>
       </div>
       <div class="stat-widget">
         <svg class="stat-ring" viewBox="0 0 40 40" width="34" height="34">
@@ -191,11 +191,11 @@
 </div>
 
 <!-- ============ COMMAND PALETTE (global search) ============ -->
-<div class="palette-overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Recherche globale dans les 51 systèmes">
+<div class="palette-overlay" id="paletteOverlay" role="dialog" aria-modal="true" aria-label="Recherche globale, tous systèmes confondus">
   <div class="palette-panel">
     <div class="palette-search">
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-      <input id="paletteInput" type="text" placeholder="chercher une commande dans les 51 systèmes…" autocomplete="off">
+      <input id="paletteInput" type="text" placeholder="chercher une commande, tous systèmes confondus…" autocomplete="off">
       <span class="palette-count" id="paletteCount" aria-live="polite"></span>
       <kbd>Échap</kbd>
     </div>
@@ -410,7 +410,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
-<script src="data.js?v=20260824b" defer></script>
-<script src="app.js?v=20260824b" defer></script>
+<script src="data.js?v=20260824c" defer></script>
+<script src="app.js?v=20260824c" defer></script>
 </body>
 </html>

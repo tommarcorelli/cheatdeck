@@ -24,6 +24,10 @@ function renderCommandCounts(){
   if(heroEl) heroEl.textContent = `${rounded}+ commandes`;
   if(footerEl) footerEl.textContent = `${total} commandes au total`;
   if(topbarSystemsEl) topbarSystemsEl.textContent = systemsTotal;
+  const paletteField = document.getElementById('paletteInput');
+  if(paletteField) paletteField.placeholder = `chercher une commande dans les ${systemsTotal} systèmes…`;
+  const paletteDialog = document.getElementById('paletteOverlay');
+  if(paletteDialog) paletteDialog.setAttribute('aria-label', `Recherche globale dans les ${systemsTotal} systèmes`);
   if(heroSystemsEl) heroSystemsEl.textContent = `${systemsTotal} systèmes & outils`;
 }
 
@@ -289,6 +293,10 @@ const RISKY_COMMANDS = [
   [/\b(userdel|groupdel)\b/, 'Supprime le compte — et son dossier personnel avec -r.'],
   [/\bchmod\s+(-R\s+)?777\b/, 'Ouvre les droits à tout le monde : à éviter hors bac à sable.'],
   [/\b(iptables\s+-F|nft\s+flush)\b/, 'Vide les règles du pare-feu : la machine se retrouve ouverte.'],
+  [/\biptables\s+-P\s+\w+\s+DROP/, 'Coupe tout ce qui n’est pas déjà autorisé — y compris la session en cours.'],
+  // un essai à blanc (-n / --dry-run) ne supprime rien : pas d'avertissement
+  [/\brsync\s+(?![^|]*(?:--dry-run|-[a-z]*n[a-z]*\s))[^|]*--delete/, 'Aligne la destination sur la source : ce qui n’existe plus à la source est supprimé.'],
+  [/\bsed\s+-i(?![.\w])/, 'Modifie le fichier sur place : sans suffixe (-i.bak), l’original est perdu.'],
   [/(^|[\s;|&])(sudo\s+|doas\s+)?rm\s+-[a-z]*r/, 'Suppression récursive : ni corbeille, ni confirmation.'],
 ];
 function riskOf(cmd){
@@ -1528,6 +1536,8 @@ const CHANGELOG = [
   {
     date: '2026-08-24',
     items: [
+      '8 nouveaux outils : Bash (scripting), grep · sed · awk, curl, jq, rsync, Nmap, nftables & iptables, OpenSSL — 377 commandes de plus.',
+      'Les sections commencent enfin par les bases : « Commandes de base » passe devant « Astuces » dans tous les decks d\'outils.',
       'Mode révision : le deck pose l\'action, à toi de retrouver la commande — les cartes ratées reviennent plus souvent, le score reste sur ta machine.',
       'Les termes cherchés sont surlignés dans les résultats, dans le deck comme dans la recherche globale.',
       'Recherche globale classée par pertinence (et non plus par ordre du fichier) : le système ouvert et les correspondances exactes remontent en tête.',
@@ -1680,7 +1690,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260824b';
+  s.src = 'icons.js?v=20260824c';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();

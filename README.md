@@ -1,22 +1,25 @@
 # cheat/deck
 
-Cheatsheet de commandes pour 51 systèmes et outils — Linux (Debian, Arch,
+Cheatsheet de commandes pour 59 systèmes et outils — Linux (Debian, Arch,
 Fedora et dérivées), BSD, macOS, Windows, plus les outils du quotidien
-(Git, Docker, Kubernetes, Terraform, Ansible, tmux, Vim, systemd, Python…).
+(Bash, grep/sed/awk, curl, jq, rsync, Nmap, OpenSSL, nftables, Git, Docker,
+Kubernetes, Terraform, Ansible, tmux, Vim, systemd, Python…).
 
-Plus de 5 000 commandes, cherchables et copiables en un clic.
+Plus de 5 300 commandes, cherchables et copiables en un clic.
 Aucun compte, aucun tracker, aucun backend : tout tourne dans le navigateur.
 
 ## Ce qu'on peut faire
 
 - **Chercher** dans le système affiché, avec tolérance aux fautes de frappe,
-  ou dans les 51 systèmes à la fois avec <kbd>Ctrl</kbd> + <kbd>K</kbd>.
+  ou dans les 59 systèmes à la fois avec <kbd>Ctrl</kbd> + <kbd>K</kbd>.
   Les termes trouvés sont surlignés dans les résultats.
 - **Réviser** : le deck pose l'action, à toi de retrouver la commande. Les
   cartes ratées reviennent plus souvent, et le score reste sur ta machine.
 - **Épingler** des commandes de n'importe quel système dans une liste unique,
   exportable et réimportable en JSON.
 - **Comparer** deux systèmes côte à côte (apt contre pacman contre dnf…).
+- Les commandes irréversibles (rm -rf, terraform destroy, rsync --delete…)
+  portent un avertissement.
 - **Exporter** une cheatsheet complète en Markdown, ou l'imprimer.
 - **Consulter hors-ligne** : l'application est une PWA installable.
 
