@@ -193,19 +193,19 @@ function renderContent(){
       return `
         <div class="cmd-card" data-search="${searchBlob.replace(/"/g,'&quot;')}" data-cat="${cat.id}">
           <div class="cmd-top">
-            <span class="cmd-action">${action}</span>
+            <span class="cmd-action" data-raw="${escapeHtml(action)}">${escapeHtml(action)}</span>
             <button type="button" class="star-btn ${starred ? 'starred' : ''}" data-key="${key}" data-os="${currentOS}" data-cat="${cat.id}" data-idx="${idx}" title="Épingler" aria-label="Épingler">
               <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6z"/></svg>
             </button>
           </div>
           <div class="cmd-tag"><span class="tag-dot" style="background:${OS_META[currentOS].color}"></span>${OS_META[currentOS].label.toUpperCase()}</div>
           <div class="cmd-row">
-            <code class="cmd-code"><span class="prompt">$</span> ${escapeHtml(cmd)}</code>
+            <code class="cmd-code" data-raw="${escapeHtml(cmd)}"><span class="prompt">$</span> ${escapeHtml(cmd)}</code>
             <button type="button" class="copy-btn" data-cmd="${escapeHtml(cmd)}" title="Copier" aria-label="Copier">
               <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
           </div>
-          ${note ? `<div class="cmd-note">${note}</div>` : ''}
+          ${note ? `<div class="cmd-note">${escapeHtml(note)}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -270,8 +270,68 @@ function fuzzyMatch(term, text){
   return tokens.every(tok => fuzzyTokenMatch(tok, text));
 }
 
+/* ---- surlignage des correspondances ----
+   normalizeWithMap() garde, pour chaque caractere de la chaine normalisee
+   (minuscules, sans accents), l'index du caractere d'origine : c'est ce qui
+   permet d'encadrer la portion trouvee dans le texte reel, accents compris. */
+function normalizeWithMap(s){
+  let norm = '';
+  const map = [];
+  for(let i = 0; i < s.length; i++){
+    const n = normalize(s[i]); // meme regle que la recherche : minuscule + accents retires
+    for(let k = 0; k < n.length; k++){ norm += n[k]; map.push(i); }
+  }
+  return { norm, map };
+}
+function searchTokens(term){
+  return normalize(term).trim().split(/\s+/).filter(Boolean);
+}
+// Renvoie du HTML echappe ou chaque occurrence exacte d'un token est entouree
+// de <mark>. Les correspondances approximatives (typos) ne sont pas surlignees :
+// mieux vaut ne rien marquer que marquer a cote.
+function highlight(text, tokens){
+  if(!tokens || !tokens.length) return escapeHtml(text);
+  const { norm, map } = normalizeWithMap(text);
+  const ranges = [];
+  for(const tok of tokens){
+    if(!tok) continue;
+    let from = 0, at;
+    while((at = norm.indexOf(tok, from)) !== -1){
+      ranges.push([map[at], map[at + tok.length - 1] + 1]);
+      from = at + tok.length;
+    }
+  }
+  if(!ranges.length) return escapeHtml(text);
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [ranges[0].slice()];
+  for(const r of ranges.slice(1)){
+    const last = merged[merged.length - 1];
+    if(r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push(r.slice());
+  }
+  let out = '', cursor = 0;
+  for(const [start, end] of merged){
+    out += escapeHtml(text.slice(cursor, start)) + '<mark class="hl">' + escapeHtml(text.slice(start, end)) + '</mark>';
+    cursor = end;
+  }
+  return out + escapeHtml(text.slice(cursor));
+}
+// Repeint une carte visible. La signature evite de refaire le travail quand
+// les tokens n'ont pas bouge (changement de categorie, par exemple).
+function paintCard(card, tokens){
+  const sig = tokens.join(' ');
+  if(card.dataset.hlSig === sig) return;
+  card.dataset.hlSig = sig;
+  const actionEl = card.querySelector('.cmd-action');
+  const codeEl = card.querySelector('.cmd-code');
+  if(actionEl) actionEl.innerHTML = highlight(actionEl.dataset.raw, tokens);
+  if(codeEl) codeEl.innerHTML = '<span class="prompt">$</span> ' + highlight(codeEl.dataset.raw, tokens);
+}
+
 function applyFilters(){
-  const term = normalize(searchInput.value.trim());
+  const raw = searchInput.value.trim();
+  const term = normalize(raw);
+  const tokens = term ? searchTokens(raw) : [];
   const cards = document.querySelectorAll('.cmd-card');
   let visible = 0;
 
@@ -280,7 +340,7 @@ function applyFilters(){
     const matchesCat = currentCat === 'all' || card.dataset.cat === currentCat;
     const show = matchesSearch && matchesCat;
     card.classList.toggle('hidden', !show);
-    if(show) visible++;
+    if(show){ visible++; paintCard(card, tokens); }
   });
 
   document.querySelectorAll('.cat-section').forEach(sec => {
@@ -424,8 +484,10 @@ function navigateOS(direction){
   const next = list[(idx + direction + list.length) % list.length];
   switchTo(next, false);
 }
-function isInsideOpenOverlay(el){
-  return !!(el && el.closest && el.closest('.saved-overlay.open, .compare-overlay.open, .palette-overlay.open, .shortcuts-overlay.open'));
+// Vrai des qu'une modale est ouverte : les raccourcis globaux (fleches, R…)
+// ne doivent pas agir sur la page qui se trouve derriere.
+function anyOverlayOpen(){
+  return !!document.querySelector('.saved-overlay.open, .compare-overlay.open, .palette-overlay.open, .shortcuts-overlay.open, .drill-overlay.open');
 }
 
 familySwitchEl.addEventListener('click', (e) => {
@@ -892,31 +954,62 @@ const paletteInput = document.getElementById('paletteInput');
 const paletteResultsEl = document.getElementById('paletteResults');
 const paletteEmptyEl = document.getElementById('paletteEmpty');
 const PALETTE_LIMIT = 60;
+const paletteCountEl = document.getElementById('paletteCount');
 let paletteMatches = [];
 let paletteSelected = 0;
+let paletteTokens = [];
 let paletteLastFocus = null;
 
 function paletteRowHtml(item, i){
   return `
     <button type="button" class="palette-row ${i === paletteSelected ? 'active' : ''}" data-index="${i}">
       <span class="palette-row-os" style="color:${OS_META[item.os].color}"><span class="tag-dot" style="background:${OS_META[item.os].color}"></span>${OS_META[item.os].label}</span>
-      <span class="palette-row-action">${escapeHtml(item.action)}</span>
-      <code class="palette-row-cmd">${escapeHtml(item.cmd)}</code>
+      <span class="palette-row-action">${highlight(item.action, paletteTokens)}</span>
+      <code class="palette-row-cmd">${highlight(item.cmd, paletteTokens)}</code>
     </button>
   `;
 }
 
+/* Classement des resultats : sans score, la palette renvoyait les commandes
+   dans l'ordre du fichier de donnees (Debian d'abord, toujours). On privilegie
+   ce qui commence par le terme cherche, puis le systeme actuellement ouvert,
+   et a pertinence egale la commande la plus courte. */
+function paletteScore(item, tokens, term){
+  const action = normalize(item.action);
+  const cmd = normalize(item.cmd);
+  let score = 0;
+  if(action.startsWith(term)) score += 120;
+  else if(action.includes(term)) score += 70;
+  if(cmd.startsWith(term)) score += 100;
+  else if(cmd.includes(term)) score += 50;
+  for(const tok of tokens){
+    if(action.includes(tok)) score += 14;
+    if(cmd.includes(tok)) score += 9;
+  }
+  if(item.os === currentOS) score += 30;
+  score -= Math.min(item.cmd.length / 12, 8);
+  return score;
+}
+
 function runPaletteSearch(){
-  const term = normalize(paletteInput.value.trim());
+  const raw = paletteInput.value.trim();
+  const term = normalize(raw);
+  paletteTokens = term ? searchTokens(raw) : [];
   if(!term){
     paletteMatches = [];
     paletteResultsEl.innerHTML = '';
     paletteResultsEl.classList.remove('show');
     paletteEmptyEl.classList.remove('show');
+    paletteCountEl.textContent = '';
     return;
   }
-  paletteMatches = buildGlobalIndex().filter(item => fuzzyMatch(term, item.blob)).slice(0, PALETTE_LIMIT);
+  const hits = buildGlobalIndex().filter(item => fuzzyMatch(term, item.blob));
+  hits.sort((a, b) => paletteScore(b, paletteTokens, term) - paletteScore(a, paletteTokens, term));
+  paletteMatches = hits.slice(0, PALETTE_LIMIT);
   paletteSelected = 0;
+  paletteCountEl.textContent = hits.length > PALETTE_LIMIT
+    ? `${PALETTE_LIMIT} sur ${hits.length}`
+    : `${hits.length} résultat${hits.length !== 1 ? 's' : ''}`;
   if(!paletteMatches.length){
     paletteResultsEl.innerHTML = '';
     paletteResultsEl.classList.remove('show');
@@ -955,6 +1048,8 @@ function openPalette(){
   buildGlobalIndex();
   paletteInput.value = '';
   paletteMatches = [];
+  paletteTokens = [];
+  paletteCountEl.textContent = '';
   paletteResultsEl.innerHTML = '';
   paletteResultsEl.classList.remove('show');
   paletteEmptyEl.classList.remove('show');
@@ -989,7 +1084,14 @@ paletteInput.addEventListener('keydown', (e) => {
     updatePaletteSelection();
   } else if(e.key === 'Enter'){
     e.preventDefault();
-    if(paletteMatches[paletteSelected]) jumpToPaletteItem(paletteMatches[paletteSelected]);
+    const item = paletteMatches[paletteSelected];
+    if(!item) return;
+    // Ctrl/Cmd + Entree : on copie et on reste dans la palette
+    if(e.ctrlKey || e.metaKey) copyCmd(item.cmd);
+    else jumpToPaletteItem(item);
+  } else if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && paletteInput.selectionStart === paletteInput.selectionEnd){
+    const item = paletteMatches[paletteSelected];
+    if(item){ e.preventDefault(); copyCmd(item.cmd); }
   } else if(e.key === 'Escape'){
     closePalette();
   }
@@ -1019,6 +1121,273 @@ document.getElementById('closeShortcuts').addEventListener('click', closeShortcu
 shortcutsOverlay.addEventListener('click', (e) => { if(e.target === shortcutsOverlay) closeShortcuts(); });
 shortcutsOverlay.addEventListener('keydown', (e) => trapFocus(e, shortcutsOverlay));
 
+
+/* ==========================================================
+   Mode révision — le hero promet « enfin mémorisée » : ici on
+   retourne la carte. L'action sert de question, la commande est
+   masquée, et le résultat de chaque carte est gardé en local pour
+   faire revenir plus souvent celles qu'on rate.
+   ========================================================== */
+const DRILL_KEY = 'cheatdeck_drill_v1';
+function loadDrillStats(){ try{ return JSON.parse(localStorage.getItem(DRILL_KEY)) || {}; }catch(e){ return {}; } }
+function saveDrillStats(){ try{ localStorage.setItem(DRILL_KEY, JSON.stringify(drillStats)); }catch(e){} }
+let drillStats = loadDrillStats();
+
+const drillOverlay = document.getElementById('drillOverlay');
+const drillSetupEl = document.getElementById('drillSetup');
+const drillCardEl = document.getElementById('drillCard');
+const drillResultEl = document.getElementById('drillResult');
+const drillProgressEl = document.getElementById('drillProgress');
+let drillSource = 'os';
+let drillLength = 10;
+let drillQueue = [];
+let drillPos = 0;
+let drillMissedList = [];
+let drillOkCount = 0;
+let drillRevealed = false;
+let drillLastFocus = null;
+
+/* Toutes les cartes candidates selon la source choisie. */
+function drillCardsFrom(source){
+  const out = [];
+  if(source === 'saved'){
+    for(const fav of favorites){
+      const idx = Number(fav.key.split('::')[2]);
+      const item = DATA[fav.os] && DATA[fav.os][fav.cat] && DATA[fav.os][fav.cat][idx];
+      out.push({ os: fav.os, cat: fav.cat, idx, action: fav.action, cmd: fav.cmd, note: item ? (item[2] || '') : '', key: fav.key });
+    }
+    return out;
+  }
+  const systems = source === 'all' ? Object.keys(DATA) : [currentOS];
+  for(const os of systems){
+    for(const cat of Object.keys(DATA[os])){
+      DATA[os][cat].forEach(([action, cmd, note], idx) => {
+        out.push({ os, cat, idx, action, cmd, note: note || '', key: favKey(os, cat, idx) });
+      });
+    }
+  }
+  return out;
+}
+
+/* Poids d'une carte : une carte ratée revient, une carte sue s'efface. */
+function drillWeight(card){
+  const st = drillStats[card.key];
+  if(!st) return 1.4;
+  return Math.max(0.25, Math.min(6, 1 + 2.2 * (st.ko || 0) - 0.7 * (st.ok || 0)));
+}
+/* Tirage aléatoire pondéré sans remise (Efraimidis–Spirakis). */
+function drillPick(pool, n){
+  return pool
+    .map(card => ({ card, k: Math.pow(Math.random(), 1 / drillWeight(card)) }))
+    .sort((a, b) => b.k - a.k)
+    .slice(0, n)
+    .map(x => x.card);
+}
+
+function drillCatLabel(card){
+  const cat = CATEGORIES.find(c => c.id === card.cat);
+  return cat ? labelFor(card.os, cat.id, cat.label) : card.cat;
+}
+
+function renderDrillSetup(){
+  const pool = drillCardsFrom(drillSource);
+  const info = document.getElementById('drillPoolInfo');
+  const startBtn = document.getElementById('drillStart');
+  if(!pool.length){
+    info.textContent = drillSource === 'saved'
+      ? 'Aucun favori à réviser — épingle des commandes d’abord.'
+      : 'Aucune commande disponible.';
+    startBtn.disabled = true;
+  }else{
+    const n = Math.min(drillLength, pool.length);
+    info.textContent = pool.length + ' commandes disponibles · ' + n + ' tirées';
+    startBtn.disabled = false;
+  }
+
+  const keys = Object.keys(drillStats);
+  const seen = keys.length;
+  const mastered = keys.filter(k => (drillStats[k].ok || 0) >= 2 && (drillStats[k].ok || 0) > (drillStats[k].ko || 0)).length;
+  const shaky = keys.filter(k => (drillStats[k].ko || 0) >= (drillStats[k].ok || 0) && (drillStats[k].ko || 0) > 0).length;
+  const statsEl = document.getElementById('drillStats');
+  statsEl.innerHTML = seen
+    ? '<span><strong>' + seen + '</strong> cartes vues</span><span><strong>' + mastered + '</strong> maîtrisées</span><span><strong>' + shaky + '</strong> à revoir</span>' +
+      '<button type="button" class="drill-reset" id="drillReset">réinitialiser</button>'
+    : '<span>Aucune carte révisée pour l’instant.</span>';
+  const resetBtn = document.getElementById('drillReset');
+  if(resetBtn){
+    resetBtn.addEventListener('click', () => {
+      // deux temps : le premier clic demande confirmation, le second efface.
+      if(resetBtn.dataset.armed){
+        drillStats = {};
+        saveDrillStats();
+        renderDrillSetup();
+        showToast('Statistiques de révision effacées');
+      }else{
+        resetBtn.dataset.armed = '1';
+        resetBtn.textContent = 'confirmer ?';
+        resetBtn.classList.add('armed');
+      }
+    });
+  }
+}
+
+function showDrillScreen(name){
+  drillSetupEl.classList.toggle('show', name === 'setup');
+  drillCardEl.classList.toggle('show', name === 'card');
+  drillResultEl.classList.toggle('show', name === 'result');
+  drillProgressEl.textContent = name === 'card' ? (drillPos + 1) + ' / ' + drillQueue.length : '';
+}
+
+function renderDrillCard(){
+  const card = drillQueue[drillPos];
+  if(!card) return;
+  drillRevealed = false;
+  drillCardEl.classList.remove('revealed');
+  const meta = OS_META[card.os];
+  const osEl = document.getElementById('drillCardOs');
+  osEl.innerHTML = '<span class="tag-dot" style="background:' + meta.color + '"></span>' + escapeHtml(meta.label);
+  osEl.style.color = badgeTextColor(meta.color);
+  document.getElementById('drillCardCat').textContent = drillCatLabel(card);
+  const st = drillStats[card.key];
+  document.getElementById('drillCardStreak').textContent = st
+    ? 'vue ' + ((st.ok || 0) + (st.ko || 0)) + '× · ' + (st.ko || 0) + ' ratée' + ((st.ko || 0) > 1 ? 's' : '')
+    : 'nouvelle';
+  document.getElementById('drillCardAction').textContent = card.action;
+  document.getElementById('drillCardCmd').innerHTML = '<span class="prompt">$</span> ' + escapeHtml(card.cmd);
+  const noteEl = document.getElementById('drillCardNote');
+  noteEl.textContent = card.note || '';
+  noteEl.style.display = card.note ? '' : 'none';
+  document.getElementById('drillCopy').dataset.cmd = escapeHtml(card.cmd);
+  // tant que la réponse est floutée, elle est aussi masquée aux lecteurs d'écran
+  document.getElementById('drillAnswer').setAttribute('aria-hidden', 'true');
+  showDrillScreen('card');
+  document.getElementById('drillReveal').focus();
+}
+
+function revealDrillCard(){
+  if(drillRevealed) return;
+  drillRevealed = true;
+  drillCardEl.classList.add('revealed');
+  document.getElementById('drillAnswer').removeAttribute('aria-hidden');
+  document.getElementById('drillOk').focus();
+}
+
+function answerDrillCard(known){
+  if(!drillRevealed) return;
+  const card = drillQueue[drillPos];
+  const st = drillStats[card.key] || { ok: 0, ko: 0 };
+  if(known){ st.ok = (st.ok || 0) + 1; drillOkCount++; }
+  else { st.ko = (st.ko || 0) + 1; drillMissedList.push(card); }
+  st.last = Date.now();
+  drillStats[card.key] = st;
+  saveDrillStats();
+  drillPos++;
+  if(drillPos >= drillQueue.length) renderDrillResult();
+  else renderDrillCard();
+}
+
+function renderDrillResult(){
+  const total = drillQueue.length;
+  const pct = total ? Math.round((drillOkCount / total) * 100) : 0;
+  const verdict = pct === 100 ? 'Sans faute.' : pct >= 70 ? 'Bien joué.' : pct >= 40 ? 'À retravailler.' : 'Le deck a gagné.';
+  document.getElementById('drillScore').innerHTML =
+    '<span class="drill-score-num">' + drillOkCount + '<span class="drill-score-total">/' + total + '</span></span>' +
+    '<span class="drill-score-label">' + verdict + ' ' + pct + '% de réussite.</span>';
+  const missedEl = document.getElementById('drillMissed');
+  missedEl.innerHTML = drillMissedList.length
+    ? '<div class="drill-missed-title">À revoir</div>' + drillMissedList.map(card => (
+        '<div class="drill-missed-item">' +
+          '<div class="drill-missed-action">' + escapeHtml(card.action) +
+            '<span class="drill-missed-os" style="color:' + badgeTextColor(OS_META[card.os].color) + '">' + escapeHtml(OS_META[card.os].label) + '</span>' +
+          '</div>' +
+          '<div class="cmd-row">' +
+            '<code class="cmd-code"><span class="prompt">$</span> ' + escapeHtml(card.cmd) + '</code>' +
+            '<button type="button" class="copy-btn" data-cmd="' + escapeHtml(card.cmd) + '" title="Copier" aria-label="Copier">' +
+              '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>'
+      )).join('')
+    : '<div class="drill-missed-title">Rien à revoir sur ce tirage.</div>';
+  document.getElementById('drillReplayMissed').disabled = !drillMissedList.length;
+  showDrillScreen('result');
+  document.getElementById('drillAgain').focus();
+}
+
+function startDrill(cards){
+  const pool = cards || drillCardsFrom(drillSource);
+  if(!pool.length) return;
+  drillQueue = cards ? pool.slice() : drillPick(pool, Math.min(drillLength, pool.length));
+  drillPos = 0;
+  drillOkCount = 0;
+  drillMissedList = [];
+  renderDrillCard();
+}
+
+function openDrill(){
+  drillLastFocus = document.activeElement;
+  renderDrillSetup();
+  showDrillScreen('setup');
+  drillOverlay.classList.add('open');
+  document.body.classList.add('lock-scroll');
+  document.getElementById('drillStart').focus();
+}
+function closeDrill(){
+  if(!drillOverlay.classList.contains('open')) return;
+  drillOverlay.classList.remove('open');
+  document.body.classList.remove('lock-scroll');
+  drillLastFocus?.focus();
+}
+
+document.getElementById('drillToggle').addEventListener('click', openDrill);
+document.getElementById('closeDrill').addEventListener('click', closeDrill);
+drillOverlay.addEventListener('click', (e) => { if(e.target === drillOverlay) closeDrill(); });
+drillOverlay.addEventListener('keydown', (e) => trapFocus(e, drillOverlay));
+drillOverlay.addEventListener('click', (e) => {
+  const copyBtn = e.target.closest('.copy-btn');
+  if(copyBtn) copyCmd(unescapeCmd(copyBtn.dataset.cmd), copyBtn);
+});
+
+document.getElementById('drillSourceChoices').addEventListener('click', (e) => {
+  const btn = e.target.closest('.drill-choice');
+  if(!btn) return;
+  drillSource = btn.dataset.source;
+  document.querySelectorAll('#drillSourceChoices .drill-choice').forEach(b => b.classList.toggle('active', b === btn));
+  renderDrillSetup();
+});
+document.getElementById('drillLengthChoices').addEventListener('click', (e) => {
+  const btn = e.target.closest('.drill-choice');
+  if(!btn) return;
+  drillLength = Number(btn.dataset.length);
+  document.querySelectorAll('#drillLengthChoices .drill-choice').forEach(b => b.classList.toggle('active', b === btn));
+  renderDrillSetup();
+});
+document.getElementById('drillStart').addEventListener('click', () => startDrill());
+document.getElementById('drillReveal').addEventListener('click', revealDrillCard);
+document.getElementById('drillOk').addEventListener('click', () => answerDrillCard(true));
+document.getElementById('drillKo').addEventListener('click', () => answerDrillCard(false));
+document.getElementById('drillAgain').addEventListener('click', () => { renderDrillSetup(); showDrillScreen('setup'); document.getElementById('drillStart').focus(); });
+document.getElementById('drillReplayMissed').addEventListener('click', () => {
+  if(drillMissedList.length) startDrill(drillMissedList.slice());
+});
+
+/* Raccourcis propres à la révision : n'agissent que quand la carte est à l'écran. */
+document.addEventListener('keydown', (e) => {
+  if(!drillOverlay.classList.contains('open')) return;
+  if(!drillCardEl.classList.contains('show')) return;
+  if(isTypingTarget(e.target)) return;
+  if(e.key === ' ' || e.key === 'Spacebar'){
+    e.preventDefault();
+    if(!drillRevealed) revealDrillCard();
+  } else if(e.key === '1' || e.key === 'ArrowLeft'){
+    e.preventDefault();
+    answerDrillCard(false);
+  } else if(e.key === '2' || e.key === 'ArrowRight'){
+    e.preventDefault();
+    answerDrillCard(true);
+  }
+});
+
 /* ==========================================================
    Changelog — un vrai historique des changements livrés, pas des
    dates de "vérification" par système (impossible à garantir
@@ -1026,6 +1395,16 @@ shortcutsOverlay.addEventListener('keydown', (e) => trapFocus(e, shortcutsOverla
    tête à chaque évolution notable du site.
    ========================================================== */
 const CHANGELOG = [
+  {
+    date: '2026-08-24',
+    items: [
+      'Mode révision : le deck pose l\'action, à toi de retrouver la commande — les cartes ratées reviennent plus souvent, le score reste sur ta machine.',
+      'Les termes cherchés sont surlignés dans les résultats, dans le deck comme dans la recherche globale.',
+      'Recherche globale classée par pertinence (et non plus par ordre du fichier) : le système ouvert et les correspondances exactes remontent en tête.',
+      'Ctrl+Entrée copie le résultat sélectionné sans quitter la recherche.',
+      'Les flèches ← → ne changent plus de système quand une fenêtre est ouverte par-dessus.',
+    ],
+  },
   {
     date: '2026-08-08',
     items: [
@@ -1080,11 +1459,15 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     openShortcuts();
   }
-  if((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !isTypingTarget(e.target) && !isInsideOpenOverlay(e.target)){
+  if((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !isTypingTarget(e.target) && !anyOverlayOpen()){
     e.preventDefault();
     navigateOS(e.key === 'ArrowLeft' ? -1 : 1);
   }
-  if(e.key === 'Escape'){ closeSaved(); closeCompare(); closePalette(); closeShortcuts(); closeChangelog(); }
+  if((e.key === 'r' || e.key === 'R') && !isTypingTarget(e.target) && !anyOverlayOpen() && !e.ctrlKey && !e.metaKey && !e.altKey){
+    e.preventDefault();
+    openDrill();
+  }
+  if(e.key === 'Escape'){ closeSaved(); closeCompare(); closePalette(); closeShortcuts(); closeChangelog(); closeDrill(); }
 });
 
 document.getElementById('launchBtn').addEventListener('click', () => {
@@ -1164,7 +1547,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260808c';
+  s.src = 'icons.js?v=20260824a';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();

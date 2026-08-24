@@ -24,7 +24,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260808c">
+<link rel="stylesheet" href="style.css?v=20260824a">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -59,6 +59,10 @@
     <button type="button" class="kbtn" id="openSearch">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <span>Rechercher</span><kbd>Ctrl K</kbd>
+    </button>
+    <button type="button" class="kbtn" id="drillToggle" title="Mode révision — retrouver la commande de mémoire">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="6" width="12" height="15" rx="2"/><path d="M8 3h11a2 2 0 0 1 2 2v13"/><path d="M7 12h4M7 16h4"/></svg>
+      <span>Réviser</span>
     </button>
     <button type="button" class="kbtn" id="compareToggle" title="Comparer deux systèmes">
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h3M16 3h3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-3M12 3v18"/></svg>
@@ -166,6 +170,10 @@
       <div class="shortcuts-row"><span><kbd>↑</kbd> <kbd>↓</kbd></span><span>Naviguer dans les résultats de recherche</span></div>
       <div class="shortcuts-row"><span><kbd>↵</kbd></span><span>Ouvrir le résultat sélectionné</span></div>
       <div class="shortcuts-row"><span><kbd>Échap</kbd></span><span>Fermer la fenêtre active</span></div>
+      <div class="shortcuts-row"><span><kbd>Ctrl</kbd> + <kbd>↵</kbd></span><span>Copier le résultat sélectionné sans quitter la recherche</span></div>
+      <div class="shortcuts-row"><span><kbd>R</kbd></span><span>Ouvrir le mode révision</span></div>
+      <div class="shortcuts-row"><span><kbd>Espace</kbd></span><span>Révéler la commande (en révision)</span></div>
+      <div class="shortcuts-row"><span><kbd>1</kbd> <kbd>2</kbd></span><span>À revoir / Je savais (en révision)</span></div>
       <div class="shortcuts-row"><span><kbd>?</kbd></span><span>Afficher cette aide</span></div>
     </div>
   </div>
@@ -188,6 +196,7 @@
     <div class="palette-search">
       <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
       <input id="paletteInput" type="text" placeholder="chercher une commande dans les 51 systèmes…" autocomplete="off">
+      <span class="palette-count" id="paletteCount" aria-live="polite"></span>
       <kbd>Échap</kbd>
     </div>
     <div class="palette-results" id="paletteResults"></div>
@@ -195,7 +204,7 @@
       <span class="nr-glyph">⌀</span>
       <p>Aucune commande ne correspond.</p>
     </div>
-    <div class="palette-hint"><span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span><span><kbd>↵</kbd> ouvrir</span><span><kbd>Échap</kbd> fermer</span></div>
+    <div class="palette-hint"><span><kbd>↑</kbd><kbd>↓</kbd> naviguer</span><span><kbd>↵</kbd> ouvrir</span><span><kbd>Ctrl</kbd>+<kbd>↵</kbd> copier</span><span><kbd>Échap</kbd> fermer</span></div>
   </div>
 </div>
 
@@ -224,6 +233,76 @@
       <span class="nr-glyph">☆</span>
       <p>Aucun favori pour l'instant.</p>
       <span class="nr-hint">clique l'étoile sur une commande pour l'épingler ici — tous systèmes confondus</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ DRILL / RÉVISION ============ -->
+<div class="drill-overlay" id="drillOverlay" role="dialog" aria-modal="true" aria-labelledby="drillHeadTitle">
+  <div class="drill-panel">
+    <div class="drill-head">
+      <h2 id="drillHeadTitle">Révision</h2>
+      <span class="drill-progress" id="drillProgress"></span>
+      <button type="button" class="close-btn" id="closeDrill" aria-label="Fermer">✕</button>
+    </div>
+
+    <div class="drill-setup" id="drillSetup">
+      <p class="drill-intro">Le deck affiche l'action, à toi de retrouver la commande. Les cartes ratées reviennent plus souvent.</p>
+      <div class="drill-field">
+        <span class="drill-label">Source</span>
+        <div class="drill-choices" id="drillSourceChoices">
+          <button type="button" class="drill-choice active" data-source="os">Système affiché</button>
+          <button type="button" class="drill-choice" data-source="saved">Mes épinglés</button>
+          <button type="button" class="drill-choice" data-source="all">Tous les systèmes</button>
+        </div>
+      </div>
+      <div class="drill-field">
+        <span class="drill-label">Longueur</span>
+        <div class="drill-choices" id="drillLengthChoices">
+          <button type="button" class="drill-choice" data-length="5">5 cartes</button>
+          <button type="button" class="drill-choice active" data-length="10">10 cartes</button>
+          <button type="button" class="drill-choice" data-length="20">20 cartes</button>
+        </div>
+      </div>
+      <div class="drill-setup-foot">
+        <span class="drill-pool" id="drillPoolInfo"></span>
+        <button type="button" class="launch-btn" id="drillStart">Commencer</button>
+      </div>
+      <div class="drill-stats" id="drillStats"></div>
+    </div>
+
+    <div class="drill-card" id="drillCard">
+      <div class="drill-card-meta">
+        <span class="drill-card-os" id="drillCardOs"></span>
+        <span class="drill-card-cat" id="drillCardCat"></span>
+        <span class="drill-card-streak" id="drillCardStreak"></span>
+      </div>
+      <div class="drill-card-action" id="drillCardAction"></div>
+      <div class="drill-answer" id="drillAnswer">
+        <div class="cmd-row">
+          <code class="cmd-code" id="drillCardCmd"></code>
+          <button type="button" class="copy-btn" id="drillCopy" title="Copier" aria-label="Copier">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+        <div class="cmd-note" id="drillCardNote"></div>
+      </div>
+      <div class="drill-actions">
+        <button type="button" class="launch-btn drill-reveal" id="drillReveal">Révéler <kbd>Espace</kbd></button>
+        <div class="drill-verdicts" id="drillVerdicts">
+          <button type="button" class="drill-verdict ko" id="drillKo">À revoir <kbd>1</kbd></button>
+          <button type="button" class="drill-verdict ok" id="drillOk">Je savais <kbd>2</kbd></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="drill-result" id="drillResult">
+      <div class="drill-score" id="drillScore"></div>
+      <div class="drill-missed" id="drillMissed"></div>
+      <div class="drill-result-actions">
+        <button type="button" class="btn-ghost" id="drillReplayMissed">Rejouer les ratées</button>
+        <button type="button" class="launch-btn" id="drillAgain">Nouvelle session</button>
+      </div>
     </div>
   </div>
 </div>
@@ -330,7 +409,7 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/lenis@1.1.14/dist/lenis.min.js" defer></script>
-<script src="data.js?v=20260808c" defer></script>
-<script src="app.js?v=20260808c" defer></script>
+<script src="data.js?v=20260824a" defer></script>
+<script src="app.js?v=20260824a" defer></script>
 </body>
 </html>

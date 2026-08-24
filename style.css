@@ -173,6 +173,7 @@ h1, h2, h3{
 }
 .kbtn:hover{ color: var(--fg); border-color: rgba(var(--cyan-rgb),0.35); background: var(--glass-hi); }
 .kbtn kbd{
+  white-space: nowrap;
   font-family: var(--font-mono); font-size: 10.5px; padding: 2px 6px;
   border: 1px solid var(--line); border-radius: 4px; color: var(--fg-mute);
 }
@@ -643,6 +644,9 @@ h1, h2, h3{
   background: rgba(3,5,7,0.7); backdrop-filter: blur(6px);
   display: flex; justify-content: flex-end;
   opacity: 0; pointer-events: none; transition: opacity .25s ease;
+  /* le panneau est décalé de 24px hors écran quand il est fermé : sans ce
+     clip, ces 24px créaient un défilement latéral sur la page entière. */
+  overflow: hidden;
 }
 .saved-overlay.open{ opacity: 1; pointer-events: auto; }
 .saved-panel{
@@ -890,10 +894,159 @@ footer{
 .footer-col a:hover{ color: var(--cyan-soft); }
 .footer-bottom{ border-top: 1px solid var(--line-soft); padding-top: 22px; font-size: 12px; color: var(--fg-mute); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
 
+
+/* ==========================================================
+   Surlignage des correspondances de recherche
+   Un fond translucide plutôt qu'un aplat : lisible sur les deux
+   thèmes sans repeindre le texte, qui garde sa couleur d'origine
+   (vert pour les commandes, clair pour les intitulés).
+   ========================================================== */
+mark.hl{
+  background: rgba(var(--green-rgb), 0.20);
+  color: inherit; border-radius: 3px; padding: 0 1px;
+  box-shadow: inset 0 -1px 0 rgba(var(--green-rgb), 0.55);
+}
+.cmd-action mark.hl, .palette-row-action mark.hl, .drill-card-action mark.hl{
+  background: rgba(var(--cyan-rgb), 0.26);
+  box-shadow: inset 0 -1px 0 rgba(var(--cyan-rgb), 0.6);
+}
+
+.palette-count{
+  flex-shrink: 0; font-family: var(--font-mono); font-size: 11px;
+  color: var(--fg-mute); white-space: nowrap;
+}
+
+/* ==========================================================
+   Mode révision — même verre dépoli que le reste, mais une seule
+   carte à l'écran : rien ne doit distraire de la question posée.
+   ========================================================== */
+.drill-overlay{
+  position: fixed; inset: 0; z-index: 115;
+  background: rgba(3,5,7,0.72); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  opacity: 0; pointer-events: none; transition: opacity .2s ease;
+}
+.drill-overlay.open{ opacity: 1; pointer-events: auto; }
+.drill-panel{
+  width: min(680px, 100%); max-height: 86vh; overflow-y: auto;
+  background: var(--bg-1); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15), 0 20px 50px rgba(0,0,0,0.4);
+  transform: translateY(10px) scale(.98); transition: transform .2s ease;
+}
+.drill-overlay.open .drill-panel{ transform: none; }
+.drill-head{ display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.drill-head h2{ font-size: 20px; margin: 0; }
+.drill-progress{ margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--fg-mute); }
+
+.drill-setup, .drill-card, .drill-result{ display: none; }
+.drill-setup.show, .drill-card.show, .drill-result.show{ display: block; }
+
+.drill-intro{ margin: 0 0 20px; font-size: 13.5px; line-height: 1.6; color: var(--fg-dim); }
+.drill-field{ margin-bottom: 16px; }
+.drill-label{
+  display: block; margin-bottom: 8px;
+  font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--fg-mute);
+}
+.drill-choices{ display: flex; flex-wrap: wrap; gap: 8px; }
+.drill-choice{
+  padding: 8px 14px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--glass); color: var(--fg-dim);
+  font-size: 12.5px; font-weight: 600; transition: all .2s;
+}
+.drill-choice:hover{ color: var(--fg); border-color: rgba(var(--cyan-rgb),0.4); }
+.drill-choice.active{ background: rgba(var(--cyan-rgb),0.16); border-color: rgba(var(--cyan-rgb),0.55); color: var(--fg); }
+.drill-setup-foot{
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line-soft);
+}
+.drill-pool{ font-family: var(--font-mono); font-size: 12px; color: var(--fg-mute); }
+.drill-setup-foot .launch-btn{ padding: 11px 22px; }
+.drill-setup-foot .launch-btn:disabled{ opacity: .45; box-shadow: none; transform: none; cursor: not-allowed; }
+.drill-stats{ display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-top: 16px; font-size: 11.5px; color: var(--fg-mute); }
+.drill-stats strong{ color: var(--fg); font-family: var(--font-mono); font-weight: 700; }
+.drill-reset{ margin-left: auto; background: none; border: none; color: var(--fg-mute); font-size: 11px; text-decoration: underline; }
+.drill-reset:hover{ color: var(--fg); }
+.drill-reset.armed{ color: #ff9d94; }
+
+.drill-card-meta{
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;
+  font-size: 10.5px; letter-spacing: 0.06em; color: var(--fg-mute);
+}
+.drill-card-os{ display: inline-flex; align-items: center; gap: 6px; }
+.drill-card-streak{ margin-left: auto; font-family: var(--font-mono); }
+.drill-card-action{ font-family: var(--font-display); font-size: 22px; font-weight: 700; line-height: 1.35; margin-bottom: 20px; }
+
+/* La réponse reste dans le flux (la carte ne saute pas au dévoilement),
+   mais elle est floutée et inerte tant qu'on n'a pas répondu. */
+.drill-answer{
+  filter: blur(7px); opacity: .45; user-select: none; pointer-events: none;
+  transition: filter .25s ease, opacity .25s ease;
+}
+.drill-card.revealed .drill-answer{ filter: none; opacity: 1; user-select: auto; pointer-events: auto; }
+
+.drill-actions{ margin-top: 20px; }
+.drill-reveal{ width: 100%; justify-content: center; padding: 13px 22px; font-size: 13.5px; }
+.drill-card.revealed .drill-reveal{ display: none; }
+.drill-reveal kbd, .drill-verdict kbd{
+  font-family: var(--font-mono); font-size: 10px; padding: 1px 5px;
+  border: 1px solid currentColor; border-radius: 4px; opacity: .7;
+}
+.drill-verdicts{ display: none; gap: 10px; }
+.drill-card.revealed .drill-verdicts{ display: flex; }
+.drill-verdict{
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 13px 18px; border-radius: 999px; border: 1px solid;
+  font-size: 13.5px; font-weight: 700; transition: all .2s;
+}
+.drill-verdict.ok{ color: var(--green); border-color: rgba(var(--green-rgb),0.5); background: rgba(var(--green-rgb),0.10); }
+.drill-verdict.ok:hover{ background: rgba(var(--green-rgb),0.2); }
+.drill-verdict.ko{ color: #ffb0a8; border-color: rgba(255,150,140,0.45); background: rgba(255,150,140,0.08); }
+.drill-verdict.ko:hover{ background: rgba(255,150,140,0.16); }
+
+.drill-score{ display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 8px 0 22px; }
+.drill-score-num{ font-family: var(--font-mono); font-size: 44px; font-weight: 700; color: var(--green); line-height: 1; }
+.drill-score-total{ font-size: 22px; color: var(--fg-mute); }
+.drill-score-label{ font-size: 13.5px; color: var(--fg-dim); }
+.drill-missed{ display: flex; flex-direction: column; gap: 12px; }
+.drill-missed-title{ font-size: 10.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--fg-mute); }
+.drill-missed-item{ padding: 14px; border-radius: 14px; background: var(--glass); border: 1px solid var(--line); }
+.drill-missed-action{
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;
+  font-family: var(--font-display); font-weight: 600; font-size: 13.5px;
+}
+.drill-missed-os{ font-size: 10.5px; letter-spacing: 0.06em; white-space: nowrap; }
+.drill-result-actions{ display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+.drill-result-actions .btn-ghost{ padding: 11px 18px; font-size: 13px; }
+.drill-result-actions .btn-ghost:disabled{ opacity: .4; cursor: not-allowed; transform: none; }
+
+/* La barre du haut porte un bouton texte de plus : on retire les libellés
+   au fur et à mesure que la place manque, du moins essentiel au plus utile,
+   plutôt que de laisser la barre pousser la page en défilement latéral. */
+@media (max-width: 900px){
+  #drillToggle span, #compareToggle span{ display: none; }
+  #drillToggle, #compareToggle{ padding: 9px 11px; gap: 0; }
+}
+@media (max-width: 820px){
+  /* il ne reste que le compteur, la pastille suffit à identifier le bouton */
+  #savedToggle span:not(.saved-count){ display: none; }
+  #savedToggle{ padding: 9px 11px; gap: 4px; }
+}
+@media (max-width: 560px){
+  .drill-overlay{ padding: 12px; }
+  .drill-panel{ padding: 18px; max-height: 92vh; }
+  .drill-card-action{ font-size: 18px; }
+  .drill-verdicts{ flex-direction: column; }
+  .drill-result-actions{ justify-content: stretch; }
+  .drill-result-actions button{ flex: 1; justify-content: center; }
+}
+
 /* ==========================================================
    Responsive
    ========================================================== */
-@media (max-width: 900px){
+@media (max-width: 1240px){
+  /* la navigation du haut (manifeste / commandes / compteur) est un rappel,
+     pas un outil : elle s'efface avant que les boutons ne se tassent. */
   .topbar-nav{ display: none; }
 }
 
@@ -908,6 +1061,12 @@ footer{
   .kbtn span, .kbtn kbd{ display: none; }
   .saved-count{ display: inline-flex; margin-left: 4px; }
   .launch-btn{ padding: 9px 14px; font-size: 12.5px; }
+
+  /* Sur téléphone, la barre déborderait : on enlève l'aide aux raccourcis
+     clavier (il n'y a pas de clavier) et le bouton « Lancer », qui ne fait
+     que descendre vers le deck — ce que fait déjà le bouton du hero. */
+  #shortcutsToggle, #launchBtn{ display: none; }
+  body{ overflow-x: hidden; }
 
   .hero{ min-height: 78vh; padding-top: 20px; }
   .hero-inner{ max-width: 100%; }
@@ -963,6 +1122,8 @@ footer{
   .kbtn{ padding: 8px; }
   .launch-btn{ padding: 8px 11px; font-size: 12px; }
   .hero h1{ font-size: 30px; }
+  /* à cette largeur, le monogramme suffit à identifier le site */
+  .topbar .brand > span:last-child{ display: none; }
 }
 
 @media (prefers-reduced-motion: reduce){
@@ -979,7 +1140,7 @@ footer{
   body{ background: #fff !important; color: #111 !important; }
   .topbar, .hero, .hero-streaks, footer,
   .family-switch, .group-switch, .os-switch, .tag-bar, .tag-results,
-  .controls, .recent-searches, .saved-overlay, .compare-overlay, .palette-overlay, .shortcuts-overlay,
+  .controls, .recent-searches, .saved-overlay, .compare-overlay, .palette-overlay, .shortcuts-overlay, .drill-overlay,
   .star-btn, .copy-btn, .copy-all-btn, .cat-rule, .os-export-btn,
   #themeToggle, .deck-anchor, .section-label{ display: none !important; }
 
@@ -991,6 +1152,9 @@ footer{
   .cat-head h3{ color: #111 !important; }
   .cat-icon{ display: none; }
   .cat-count{ color: #555 !important; background: none !important; }
+
+  /* sur papier, le surlignage de recherche devient un simple gris clair */
+  mark.hl{ background: #eee !important; color: #111 !important; box-shadow: none !important; }
 
   .cmd-grid{ display: block !important; }
   .cmd-card{ break-inside: avoid; page-break-inside: avoid; background: none !important; border: none !important; border-bottom: 1px solid #ddd !important; border-radius: 0 !important; padding: 6px 0 !important; margin: 0 !important; backdrop-filter: none !important; }
