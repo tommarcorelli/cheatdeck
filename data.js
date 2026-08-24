@@ -2577,7 +2577,7 @@ const DATA = {
     securite: [
       ['Auditer les dépendances pour des vulnérabilités connues', 'pip-audit', 'nécessite pip install pip-audit'],
       ['Installer uniquement si le hash correspond', 'pip install -r requirements.txt --require-hashes'],
-      ['Épingler exactement toutes les versions (reproductibilité)', 'pip freeze > requirements.txt'],
+      ['Générer un requirements.txt avec les empreintes', 'pip-compile --generate-hashes requirements.in', 'nécessite pip install pip-tools ; c\'est ce fichier que --require-hashes vérifie'],
       ['Installer uniquement depuis un index de confiance', 'pip install --index-url https://pypi.org/simple nom'],
       ['Installer uniquement depuis un cache local (offline)', 'pip install --no-index --find-links=./paquets nom'],
     ],

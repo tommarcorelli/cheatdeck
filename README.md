@@ -15,6 +15,8 @@ Aucun compte, aucun tracker, aucun backend : tout tourne dans le navigateur.
   Les termes trouvés sont surlignés dans les résultats.
 - **Réviser** : le deck pose l'action, à toi de retrouver la commande. Les
   cartes ratées reviennent plus souvent, et le score reste sur ta machine.
+- **Partager** une commande précise : l'icône de chaîne copie un lien qui
+  rouvre le deck sur cette carte.
 - **Épingler** des commandes de n'importe quel système dans une liste unique,
   exportable et réimportable en JSON.
 - **Comparer** deux systèmes côte à côte (apt contre pacman contre dnf…).

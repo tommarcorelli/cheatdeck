@@ -331,9 +331,14 @@ function renderContent(){
         <div class="cmd-card ${riskOf(cmd) ? 'risky' : ''}" data-search="${searchBlob.replace(/"/g,'&quot;')}" data-cat="${cat.id}">
           <div class="cmd-top">
             <span class="cmd-action" data-raw="${escapeHtml(action)}">${escapeHtml(action)}</span>
-            <button type="button" class="star-btn ${starred ? 'starred' : ''}" data-key="${key}" data-os="${currentOS}" data-cat="${cat.id}" data-idx="${idx}" title="Épingler" aria-label="Épingler">
-              <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6z"/></svg>
-            </button>
+            <span class="cmd-tools">
+              <button type="button" class="link-btn" data-link="${cmdHash(cmd)}" data-link-cat="${cat.id}" title="Copier le lien vers cette commande" aria-label="Copier le lien vers cette commande">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>
+              </button>
+              <button type="button" class="star-btn ${starred ? 'starred' : ''}" data-key="${key}" data-os="${currentOS}" data-cat="${cat.id}" data-idx="${idx}" title="Épingler" aria-label="Épingler">
+                <svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 7-6.3-3.9L5.7 21l1.7-7L2 9.2l7.1-.6z"/></svg>
+              </button>
+            </span>
           </div>
           <div class="cmd-tag"><span class="tag-dot" style="background:${OS_META[currentOS].color}"></span>${OS_META[currentOS].label.toUpperCase()}</div>
           <div class="cmd-row">
@@ -573,25 +578,41 @@ window.cheatdeckSwitchTo = switchTo;
    shared. Plain anchors (#hero, #deck, #top) aren't OS ids, so
    they fall through untouched and keep their native scroll behavior.
    ========================================================== */
+/* Met en évidence la carte visée par un lien direct, une fois le deck rendu. */
+function flashCommand(hash){
+  if(!hash) return;
+  const card = [...document.querySelectorAll('.cmd-card')]
+    .find(c => c.querySelector('.link-btn')?.dataset.link === hash);
+  if(!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  card.classList.add('flash');
+  setTimeout(() => card.classList.remove('flash'), 1500);
+}
+
 function currentHashTarget(){
   return currentOS + (currentCat !== 'all' ? '/' + currentCat : '');
 }
 function setHash(replace){
   const target = currentHashTarget();
-  if(location.hash.slice(1) === target) return;
+  const current = location.hash.slice(1);
+  if(current === target) return;
+  // un lien de commande pointe déjà sur le bon système/catégorie : on le garde
+  if(current.split('/').length === 3 && current.startsWith(target + '/')) return;
   if(replace) history.replaceState(null, '', '#' + target);
   else location.hash = target;
 }
+let pendingCommandHash = null;
 function resolveInitialState(){
   const raw = location.hash.slice(1);
   if(!raw) return false;
-  const [os, cat] = raw.split('/');
+  const [os, cat, hash] = raw.split('/');
   if(!OS_META[os] || !DATA[os]) return false;
   currentOS = os;
   currentFamily = familyOf(os).id;
   const g = groupOf(os);
   currentGroup = g ? g.id : null;
   currentCat = (cat && DATA[os][cat]) ? cat : 'all';
+  pendingCommandHash = hash || null;
   return true;
 }
 function applyHash(){
@@ -600,8 +621,13 @@ function applyHash(){
   const [os, cat] = raw.split('/');
   if(!OS_META[os] || !DATA[os]) return; // not an OS route — leave native anchors alone
   const resolvedCat = (cat && DATA[os][cat]) ? cat : 'all';
-  if(os === currentOS && resolvedCat === currentCat) return;
+  const hash = raw.split('/')[2];
+  if(os === currentOS && resolvedCat === currentCat){
+    flashCommand(hash);
+    return;
+  }
   switchTo(os, true, resolvedCat);
+  if(hash) setTimeout(() => flashCommand(hash), 350);
 }
 window.addEventListener('hashchange', applyHash);
 
@@ -733,7 +759,7 @@ function unescapeCmd(s){
   return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"');
 }
 
-async function copyCmd(cmd, btn){
+async function copyCmd(cmd, btn, message){
   try{
     await navigator.clipboard.writeText(cmd);
   }catch(err){
@@ -745,10 +771,22 @@ async function copyCmd(cmd, btn){
     btn.classList.add('copied');
     setTimeout(() => btn.classList.remove('copied'), 900);
   }
-  showToast('Commande copiée');
+  showToast(message || 'Commande copiée');
+}
+
+/* Lien direct vers une commande : #systeme/categorie/empreinte. L'empreinte
+   est celle de la commande elle-même, donc le lien survit à l'ajout d'une
+   commande au-dessus — comme les favoris. */
+function commandLink(os, cat, hash){
+  return location.origin + location.pathname + '#' + os + '/' + cat + '/' + hash;
 }
 
 contentEl.addEventListener('click', (e) => {
+  const linkBtn = e.target.closest('.link-btn');
+  if(linkBtn){
+    copyCmd(commandLink(currentOS, linkBtn.dataset.linkCat, linkBtn.dataset.link), linkBtn, 'Lien de la commande copié');
+    return;
+  }
   const copyBtn = e.target.closest('.copy-btn');
   if(copyBtn){
     copyCmd(unescapeCmd(copyBtn.dataset.cmd), copyBtn);
@@ -1541,6 +1579,7 @@ const CHANGELOG = [
     items: [
       '8 nouveaux outils : Bash (scripting), grep · sed · awk, curl, jq, rsync, Nmap, nftables & iptables, OpenSSL — 377 commandes de plus.',
       '245 notes ajoutées : ce que fait vraiment un drapeau, le piège classique, la commande qui l\'a remplacée. 63% des cartes en ont une, contre 5% avant.',
+      'Chaque commande a son lien direct : l’icône de chaîne copie une URL qui rouvre le deck sur cette carte précise.',
       'Les sections commencent enfin par les bases : « Commandes de base » passe devant « Astuces » dans tous les decks d\'outils.',
       'Mode révision : le deck pose l\'action, à toi de retrouver la commande — les cartes ratées reviennent plus souvent, le score reste sur ta machine.',
       'Les termes cherchés sont surlignés dans les résultats, dans le deck comme dans la recherche globale.',
@@ -1694,7 +1733,7 @@ let iconsLoaded = false;
 function loadIcons(){
   if(iconsLoaded || typeof OS_ICONS !== 'undefined') return;
   const s = document.createElement('script');
-  s.src = 'icons.js?v=20260824d';
+  s.src = 'icons.js?v=20260824f';
   s.onload = () => {
     iconsLoaded = true;
     renderDistroTabs();
@@ -1736,6 +1775,7 @@ function init(){
   initParallax();
   setHash(true);
   if(cameFromDeepLink) document.querySelector('.deck-anchor').scrollIntoView({ behavior: 'auto', block: 'start' });
+  if(pendingCommandHash) setTimeout(() => flashCommand(pendingCommandHash), 200);
   if('requestIdleCallback' in window) requestIdleCallback(loadIcons, { timeout: 2000 });
   else setTimeout(loadIcons, 300);
 }
